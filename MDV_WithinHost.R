@@ -12,7 +12,7 @@ sir_equations <- function(time, variables, parameters) {
     df <- -nu_F*Lt*f
     dIf <- nu_F*Lt*f
     return(list(c(dB, dCb, dT, dAt, dLt, dCt, dZ, df,dIf)))
-  })
+  }) 
 }
 
 parameters_values <- c( 
