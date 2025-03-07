@@ -5,9 +5,9 @@ sir_equations <- function(time, variables, parameters) {
     dB <- -M*B_cells - beta*Cb*B_cells - beta_2*Ct*B_cells + (g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct 
     dCb <- M*B_cells + beta*Cb*B_cells + beta_2*Ct*B_cells - alpha*Cb # should alpha be larger here because cb keeps growing 
     dT <- -nu_A*Cb*T_cells - nu_b*Ct*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
-    dAt <- nu_A*Cb*T_cells + nu_b*Ct*T_cells - beta_2*Ct*At - beta*Cb*At # beta = rate of activated T cells by Ct and Cb cells 
-    dLt <- theta*(beta_2*Ct*At + beta*Cb*At) - mu*Lt
-    dCt <- (1-theta)*(beta_2*Ct*At + beta*Cb*At) - alpha_2*Ct
+    dAt <- nu_A*Cb*T_cells + nu_b*Ct*T_cells - beta_3*Ct*At - beta_4*Cb*At # beta = rate of activated T cells by Ct and Cb cells 
+    dLt <- theta*(beta_3*Ct*At + beta_4*Cb*At) - mu*Lt
+    dCt <- (1-theta)*(beta_3*Ct*At + beta_4*Cb*At) - alpha_2*Ct
     dZ <- mu*Lt
     df <- -nu_F*Lt*f
     dIf <- nu_F*Lt*f
@@ -17,25 +17,27 @@ sir_equations <- function(time, variables, parameters) {
 
 parameters_values <- c( 
   M = 0.1
-  , beta =4.819e-3             #contact rate with B cells // this needs to be faster? 
-  , beta_2 =5e-4               #contact rate with T cells #0.5 
-  , nu_A = 0.005               #Activation rate with T cells CD4+  
-  , nu_b = 0.001                #Activation rate with B cells 
-  , nu_F = 0.001               #Infection rate of follicular cells 
-  , mu = 0.1                   #Rate of Tumor Cells 
-  , alpha = 0.05              #death rate of B cells 0.015
-  , alpha_2 = 0.050            #death rate of T cells 0.010
-  , theta = 0.5                #population of activated T cells 
-  , g1 = 0.05                  #incoming B cells 
+  , beta = 0.02898551           #contact rate with B cells (every 34 hours/ 1.4days) 
+  , beta_2 = 0.00300            #contact rate with T cells (every 333 hour/ 13 days) 
+   , beta_3 = beta_2              #contact rate with Ct cells for At 41 days activated T cells leaving 
+   , beta_4 = beta              #contact rate with Cb cells for At 41 days activated T cells leaving
+  , nu_A =  0.003               #Activation rate with T cells CD4+ (333 hours/ 13days)
+  , nu_b = 0.006                #Activation rate with B cells (166 hours/ 41days)
+  , nu_F = 0.006                #Infection rate of follicular cells (166 hours/ 41days)
+  , mu = 0.01388889             #Rate of Tumor Cells (every 72 hours)
+  , alpha = 0.03                #death rate of B cells (every 33 hours)
+  , alpha_2 = 0.02083333        #death rate of T cells (every 48 hours)
+  , theta = 0.7                 #population of activated T cells 
+  , g1 = 0.06666667             #incoming B cells (every 15 hours)
   , g2 =0.001    
-  , h1 = 0                     #incoming T cells / determined no incoming T cells 
+  , h1 = 0                      #incoming T cells / determined no incoming T cells 
   , h2 = 10
 )
 
 initial_values <- c( 
-  B_cells = 50  
+  B_cells = 100  
   , Cb = 0 
-  , T_cells =50
+  , T_cells =100
   , At = 0
   , Lt = 0
   , Ct = 0
@@ -58,7 +60,7 @@ sir_values_1 <- as.data.frame(sir_values_1)
 
 
 with(sir_values_1, {
-  plot(x=time, y=B_cells, col="black", type="l", ylim= c(0,50),  xlab="Time (Hours)", ylab="Population density", main="Marek's Model", cex.lab = 1.5, xlim = c(0,200))          #Plot the data for S over time
+  plot(x=time, y=B_cells, col="black", type="l", ylim= c(0,100),  xlab="Time (Hours)", ylab="Population density", main="Marek's Model", cex.lab = 1.5, xlim = c(0,200))          #Plot the data for S over time
   lines(time, T_cells, col="red")  
   lines(time, Cb, col= "green")                                  #Add a line for I over time
   lines(time, At, col="blue")
