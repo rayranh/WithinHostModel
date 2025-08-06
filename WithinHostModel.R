@@ -4,9 +4,9 @@ sir_equations <- function(time, variables, parameters) {
   with(as.list(c(variables, parameters)), {
     dB <- -M*B_cells - beta*Cb*B_cells - beta_2*Ct*B_cells + (g1*(Cb+Ct)/(g2+(Cb+Ct))) 
     dCb <- M*B_cells + beta*Cb*B_cells + beta_2*Ct*B_cells - alpha*Cb
-    dT <- -nu_A*Cb*T_cells - nu_b*Ct*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
-    dAt <- nu_A*Cb*T_cells + nu_b*Ct*T_cells - beta_2*Ct*At - beta*Cb*At
-    dLt <- theta*(beta_2*Ct*At + beta*Cb*At) - mu*Lt
+    dT <--M*T_cells -nu_A*Cb*T_cells - nu_b*Ct*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
+    dAt <- M*T_cells + nu_A*Cb*T_cells + nu_b*Ct*T_cells - beta_2*Ct*At - beta*Cb*At
+    dLt <- theta*(beta_2*Ct*At + beta*Cb*At) - mu*Lt 
     dCt <- (1-theta)*(beta_2*Ct*At + beta*Cb*At) - alpha_2*Ct
     dZ <- mu*Lt
     df <- -nu_F*Lt*f
@@ -21,7 +21,7 @@ parameters_values <- c(
   , beta_2 =5e-4                #contact rate with T cells #0.5 
   , nu_A = 0.005               #Activation rate with T cells CD4+  
   , nu_b = 0.01                #Activation rate with B cells 
-  , nu_F = 0.001                 #Infection rate of follicular cells 
+  , nu_F = 0.1                 #Infection rate of follicular cells 
   , mu = 0.1                 #Rate of Tumor Cells 
   , alpha = 0.015              #death rate of B cells 
   , alpha_2 = 0.010            #death rate of T cells 
@@ -45,7 +45,7 @@ initial_values <- c(
   
 ) 
 
-time_values <- seq(0, 5000) # hours
+time_values <- seq(0, 50000) # hours
 
 sir_values_1 <- ode(
   y = initial_values,
@@ -65,8 +65,8 @@ with(sir_values_1, {
   lines(time,Lt, col="purple" ) 
   lines(time,Ct, col="yellow" )  
   lines(time, Z, col= "lightblue") 
-  #lines(time, f, col="aquamarine") 
-  #lines(time,If, col="pink" ) 
+  lines(time, f, col="aquamarine") 
+  lines(time,If, col="pink" )  
 })
 
 # adding a legend:
