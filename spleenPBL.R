@@ -3,7 +3,9 @@ library(deSolve)
 library(reshape2) 
 library(ggplot2)
 library(dplyr) 
-library(patchwork)
+library(patchwork) 
+library(writexl) 
+library(readxl)
 sir_equations <- function(time, variables, parameters) {
   with(as.list(c(variables, parameters)), {
     dB <- -M*B_cells - beta*Cb*B_cells - beta_2*Ct*B_cells + (g1*(Cb+Ct)/(g2+(Cb+Ct))) - mu_o*B_cells + mu_p*Bb_cells # beta = rate of cytolytically infected B cells by Cb and Ct 
@@ -84,7 +86,10 @@ sir_values_1 <- ode(
   times = time_values,
   func = sir_equations,
   parms = parameters_values 
-) 
+)  
+
+
+
 
 #added strings as factors because otherwise turns into factors for some reason 
 sir_values_1 <- as.data.frame(sir_values_1, stringsAsFactors = FALSE) 
@@ -92,7 +97,8 @@ sir_values_1 <- as.data.frame(sir_values_1, stringsAsFactors = FALSE)
 df <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_cells", "T_cells", "Cb", "Lt5", "f", "If")) 
 df2 <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("Bb_cells", "Cbb_cells", "Tb_cells", "Atb_cells", "Ltb_cells", "Ctb_cells"))  
 dtotal <-  sir_values_1 %>% mutate(B_total = rowSums(across(c(Bb_cells, Cbb_cells)))) %>% mutate(T_total = rowSums(across(c(Tb_cells, Atb_cells, Ltb_cells, Ctb_cells)))) %>% 
-  melt(id.vars = "time") %>% filter(variable %in% c("B_total", "T_total"))  
+  melt(id.vars = "time") %>% filter(variable %in% c("B_total", "T_total"))   
+
 
 p1 <-ggplot(data = df, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
   scale_color_manual(values = c("B_cells" = "black", "T_cells" = "red", "Cb"="green", "At" = "blue", "Lt5" = "purple", 
