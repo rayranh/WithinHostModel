@@ -5,7 +5,11 @@ library(ggplot2)
 library(dplyr) 
 library(patchwork) 
 library(writexl) 
-library(readxl)
+library(readxl) 
+
+PBL_data <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/PayneRennie1976raw.xlsx")
+
+
 sir_equations <- function(time, variables, parameters) {
   with(as.list(c(variables, parameters)), {
     dB <- -M*B_cells - beta*Cb*B_cells - beta_2*Ct*B_cells + (g1*(Cb+Ct)/(g2+(Cb+Ct))) - mu_o*B_cells + mu_p*Bb_cells # beta = rate of cytolytically infected B cells by Cb and Ct 
@@ -39,27 +43,27 @@ parameters_values <- c(
   M = 0.005
   , beta = 10.819e-4       #contact rate with B cells 
   , beta_2 = 5e-4           #contact rate with T cells 
-  , nu_A = 0.05             #Activation rate of T cells by cytolytic B cells (hours)
-  , nu_b = 0.001            #Activation rate of T cells by cytolytic T cells (hours)
+  , nu_A = 0.01             #Activation rate of T cells by cytolytic B cells (hours)
+  , nu_b = 0.01            #Activation rate of T cells by cytolytic T cells (hours)
   , nu_F =0.07              #Infection rate of follicular cells (hours)
-  , mu_o = 0.005            #migration of blood cells out 
-  , mu_p = 0.001            #rate of circulation to lymphoid organs 
+  , mu_o = 0.01           #migration of blood cells out 
+  , mu_p = 0.0001            #rate of circulation to lymphoid organs 
   , mu_t = 0.008
   , alpha =  0.01           #death rate of cytolytic B cells (every 33 hours)
-  , alpha_2 = 0.01          #death rate of cytolytic T cells (every 48 hours) 
+  , alpha_2 = 0.0001          #death rate of cytolytic T cells (every 48 hours) 
   , alpha_B = 0.001
   , theta = 0.8            #population of activated T cells 
-  , g1 =  0                #incoming B cells (every 15 hours)
-  , g2 =0.001    
+  , g1 =  0.01                #incoming B cells (every 15 hours)
+  , g2 =0.01    
   , h1 = 0                     #incoming T cells / determined no incoming T cells 
   , h2 = 10  
-  , lambda = 0.007          #adding delay, how long latent cell 'exposed' 
+  , lambda = 0.005          #adding delay, how long latent cell 'exposed' 
 )
 
 initial_values <- c( 
-  B_cells = 56
+  B_cells = 10000
   , Cb = 0 
-  , T_cells =87
+  , T_cells =50000
   , At = 0 
   , Lt = 0 
   , Lt2 = 0 
@@ -79,7 +83,7 @@ initial_values <- c(
   
 ) 
 
-time_values <- seq(0, 1000) # hours
+time_values <- seq(0, 1080) # hours
 
 sir_values_1 <- ode(
   y = initial_values,
@@ -97,7 +101,11 @@ sir_values_1 <- as.data.frame(sir_values_1, stringsAsFactors = FALSE)
 df <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_cells", "T_cells", "Cb", "Lt5", "f", "If")) 
 df2 <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("Bb_cells", "Cbb_cells", "Tb_cells", "Atb_cells", "Ltb_cells", "Ctb_cells"))  
 dtotal <-  sir_values_1 %>% mutate(B_total = rowSums(across(c(Bb_cells, Cbb_cells)))) %>% mutate(T_total = rowSums(across(c(Tb_cells, Atb_cells, Ltb_cells, Ctb_cells)))) %>% 
-  melt(id.vars = "time") %>% filter(variable %in% c("B_total", "T_total"))   
+  melt(id.vars = "time") %>% filter(variable %in% c("B_total", "T_total"))    
+
+#data from paper 
+
+PBL_B <- PBL_data %>% filter(variable_B == "infectBCells", variable_T == "InfectTcells")
 
 
 p1 <-ggplot(data = df, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
@@ -108,12 +116,15 @@ p1 <-ggplot(data = df, aes(x = time/24, y = value, group = variable, colour = va
 p2 <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
   scale_color_manual(values = c("Bb_cells" = "black", "Tb_cells" = "red", "Cbb_cells"="green", "Atb_cells" = "blue", "Ltb_cells" = "purple", 
                                 "Ctb_cells" = "yellow")) +
-  labs(title = "WithinHost Delay - Blood", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number") + ylim(c(0,30)) #set ylim to see  
+  labs(title = "WithinHost Delay - Blood", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number")    
 
 
 p3 <- ggplot(data = dtotal, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
-  scale_color_manual(values = c("B_total" = "black", "T_total" = "red")) +
-  labs(title = "WithinHost Delay - Blood", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number") + ylim(c(0,100))
+  scale_color_manual(values = c("B_total" = "black", "T_total" = "red", "PBL_B"="blue", "PBL_T" = "hotpink")) +
+  geom_point(data =PBL_B, mapping = aes(x = time, y = value_B, colour = "PBL_B"), inherit.aes = FALSE) +  
+  geom_point(data =PBL_B, mapping = aes(x = time, y = value_T, colour = "PBL_T"), inherit.aes = FALSE) +   
+  labs(title = "WithinHost Delay - Blood", color = "Cell Type") + theme(legend.position = "right") +
+  theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number")  
 
 (p1 | p2)/p3 + plot_layout(widths = c(2,2)) 
 
