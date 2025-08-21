@@ -5,10 +5,12 @@ library(ggplot2)
 library(dplyr) 
 library(patchwork) 
 library(writexl) 
-library(readxl) 
+library(readxl)  
+library(purrr) 
 
 PBL_data <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/PayneRennie1976raw.xlsx")
 
+params <- c(10.819e-4, 5e-3 )
 
 sir_equations <- function(time, variables, parameters) {
   with(as.list(c(variables, parameters)), {
@@ -38,26 +40,26 @@ sir_equations <- function(time, variables, parameters) {
   }) 
 }
 
-#blah blah adding someing 
-parameters_values <- c( 
+#blah blah adding someing
+parameters_values <- c(
   M = 0.005
-  , beta = 10.819e-4       #contact rate with B cells 
-  , beta_2 = 5e-4           #contact rate with T cells 
+  , beta = params[1]     #contact rate with B cells
+  , beta_2 = params[2]          #contact rate with T cells
   , nu_A = 0.01             #Activation rate of T cells by cytolytic B cells (hours)
   , nu_b = 0.01            #Activation rate of T cells by cytolytic T cells (hours)
   , nu_F =0.07              #Infection rate of follicular cells (hours)
-  , mu_o = 0.01           #migration of blood cells out 
-  , mu_p = 0.0001            #rate of circulation to lymphoid organs 
+  , mu_o = 0.01           #migration of blood cells out
+  , mu_p = 0.0001            #rate of circulation to lymphoid organs
   , mu_t = 0.008
   , alpha =  0.01           #death rate of cytolytic B cells (every 33 hours)
-  , alpha_2 = 0.0001          #death rate of cytolytic T cells (every 48 hours) 
+  , alpha_2 = 0.1          #death rate of cytolytic T cells (every 48 hours)
   , alpha_B = 0.001
-  , theta = 0.8            #population of activated T cells 
+  , theta = 0.8            #population of activated T cells
   , g1 =  0.01                #incoming B cells (every 15 hours)
-  , g2 =0.01    
-  , h1 = 0                     #incoming T cells / determined no incoming T cells 
-  , h2 = 10  
-  , lambda = 0.005          #adding delay, how long latent cell 'exposed' 
+  , g2 =0.01
+  , h1 = 0                     #incoming T cells / determined no incoming T cells
+  , h2 = 10
+  , lambda = 0.005          #adding delay, how long latent cell 'exposed'
 )
 
 initial_values <- c( 
@@ -83,7 +85,10 @@ initial_values <- c(
   
 ) 
 
-time_values <- seq(0, 1080) # hours
+time_values <- seq(0, 1080, by = 1) # hours
+obs_hours <- as.numeric((unique(PBL_data$time)) * 24) 
+
+
 
 sir_values_1 <- ode(
   y = initial_values,
@@ -101,11 +106,30 @@ sir_values_1 <- as.data.frame(sir_values_1, stringsAsFactors = FALSE)
 df <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_cells", "T_cells", "Cb", "Lt5", "f", "If")) 
 df2 <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("Bb_cells", "Cbb_cells", "Tb_cells", "Atb_cells", "Ltb_cells", "Ctb_cells"))  
 dtotal <-  sir_values_1 %>% mutate(B_total = rowSums(across(c(Bb_cells, Cbb_cells)))) %>% mutate(T_total = rowSums(across(c(Tb_cells, Atb_cells, Ltb_cells, Ctb_cells)))) %>% 
-  melt(id.vars = "time") %>% filter(variable %in% c("B_total", "T_total"))    
+  melt(id.vars = "time") %>% filter(variable %in% c("B_total", "T_total"))     
 
 #data from paper 
+PBL_B <- PBL_data %>% filter(variable_B == "infectBCells", variable_T == "InfectTcells") %>% mutate(time = time*24)
 
-PBL_B <- PBL_data %>% filter(variable_B == "infectBCells", variable_T == "InfectTcells")
+#matching total model times with obs data times 
+dtotallike <- dtotal %>% filter(time %in% obs_hours, variable == "B_total") 
+
+
+#empty list 
+result <- vector(mode = "list", length = nrow(dtotallike))  
+
+for (i in seq_len(nrow(dtotallike))) { 
+  obs_vec <- PBL_B %>% filter(time == dtotallike$time[i] ) %>% pull(value_B)
+  mu <- dtotallike$value[i]  
+  loglike <- dnorm(obs_vec, mu, sd = 1, log = TRUE) 
+  result[[i]] <- data.frame(time = rep(dtotallike$time[i], length(obs_vec)) , obs = obs_vec, model_val = rep( mu, length(obs_vec)) , likelihood = loglike)
+}
+
+likelihood_func <- function(List) { 
+  sum_log <- List %>% map_dbl(~sum(.x[["likelihood"]])) 
+  likelihood <- -sum(sum_log) 
+  return(likelihood)
+  }
 
 
 p1 <-ggplot(data = df, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
@@ -121,12 +145,13 @@ p2 <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = 
 
 p3 <- ggplot(data = dtotal, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
   scale_color_manual(values = c("B_total" = "black", "T_total" = "red", "PBL_B"="blue", "PBL_T" = "hotpink")) +
-  geom_point(data =PBL_B, mapping = aes(x = time, y = value_B, colour = "PBL_B"), inherit.aes = FALSE) +  
-  geom_point(data =PBL_B, mapping = aes(x = time, y = value_T, colour = "PBL_T"), inherit.aes = FALSE) +   
+  geom_point(data =PBL_B, mapping = aes(x = time/24, y = value_B, colour = "PBL_B"), inherit.aes = FALSE) +  
+  geom_point(data =PBL_B, mapping = aes(x = time/24, y = value_T, colour = "PBL_T"), inherit.aes = FALSE) +   
   labs(title = "WithinHost Delay - Blood", color = "Cell Type") + theme(legend.position = "right") +
   theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number")  
 
 (p1 | p2)/p3 + plot_layout(widths = c(2,2)) 
 
+print(optim(par = params, fn = likelihood_func, method = "Nelder-Mead"))
 
- 
+print(likelihood_func(result))
