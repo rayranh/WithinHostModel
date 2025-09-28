@@ -7,6 +7,7 @@ library(patchwork)
 library(writexl) 
 library(readxl)  
 library(purrr) 
+PBL_data <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/PayneRennie1976raw.xlsx")
 
 
 sir_equations <- function(time, variables, parameters) {
@@ -165,7 +166,7 @@ initial_values <- c(
 
 
 time_values <- seq(0, 1080, by = 1) # hours
-#obs_hours <- as.numeric((unique(PBL_data$time)) * 24) 
+obs_hours <- as.numeric((unique(PBL_data$time)) * 24) 
 
 
 
@@ -183,12 +184,11 @@ sir_values_1 <- ode(
 sir_values_1 <- as.data.frame(sir_values_1, stringsAsFactors = FALSE) 
 
 #turning into long dataframe 
-df <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c( "B_cells","Cb","Ct","T_cells","At","Lt5", "dZ_sp"))  
-df2 <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("Bb_cells", "Cbb_cells", "Tb_cells", "Atb_cells", "Ltb_cells", "Ctb_cells"))   
-df3 <-  melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("f", "If"))
+df <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_cells","Cb","Ct","T_cells","At","Lt5", "dZ_sp"))  
+df2 <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_bu","Cb_bu","Ct_bu", "T_bu","At_bu","Lt5_bu","dZ_bu"))   
+df3 <-  melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_th","Cb_th", "Ct_th", "T_th","At_th","Lt5_th","dZ_th" )) 
 dtotal <-  sir_values_1 %>% mutate(B_total = rowSums(across(c(Bb_cells, Cbb_cells)))) %>% mutate(T_total = rowSums(across(c(Tb_cells, Atb_cells, Ltb_cells, Ctb_cells)))) %>% 
-  melt(id.vars = "time") %>% filter(variable %in% c("B_total", "T_total"))     
-
+  melt(id.vars = "time") %>% filter(variable %in% c("B_total", "T_total"))  
 #data from paper 
 PBL_B <- PBL_data %>% filter(variable_B == "infectBCells", variable_T == "InfectTcells") %>% mutate(time = time*24)
 PBL_C <- PBL_data %>% filter(variable_B == "BCellsControl", variable_T == "TCellsControl") %>% mutate(time = time*24)
@@ -196,32 +196,26 @@ PBL_C <- PBL_data %>% filter(variable_B == "BCellsControl", variable_T == "TCell
 dtotallike <- dtotal %>% filter(time %in% obs_hours, variable == "B_total") 
 
 
-
 p1 <-ggplot(data = df, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
   scale_color_manual(values = c("B_cells" = "black", "T_cells" = "red", "Cb"="green", "Lt5" = "purple", 
-                                "Ct" = "yellow", "Z" = "lightblue", "At"="blue")) +
+                                "Ct" = "yellow", "dZ_sp" = "lightblue", "At"="blue")) +
   labs(title = "WithinHost Delay - Spleen", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() + 
   xlab(label = "Time (Days)") + ylab(label = "Cell Number") 
 
 p2 <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
-  scale_color_manual(values = c("Bb_cells" = "black", "Tb_cells" = "red", "Cbb_cells"="green", "Atb_cells" = "blue", "Ltb_cells" = "purple", 
-                                "Ctb_cells" = "yellow")) +
-  labs(title = "WithinHost Delay - Blood", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number")    
+  scale_color_manual(values = c("B_bu" = "black", "T_bu" = "red", "Cb_bu"="green", "Lt5_bu" = "purple", 
+                                "Ct_bu" = "yellow", "dZ_bu" = "lightblue", "At_bu"="blue")) +
+  labs(title = "WithinHost Delay - Bursa", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() + 
+  xlab(label = "Time (Days)") + ylab(label = "Cell Number") 
 
+p3 <- ggplot(data = df3, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
+  scale_color_manual(values = c("B_th" = "black", "T_th" = "red", "Cb_th"="green", "Lt_th5" = "purple", 
+                                "Ct_th" = "yellow", "dZ_th" = "lightblue", "At_th"="blue")) +
+  labs(title = "WithinHost Delay - Thymus", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() + 
+  xlab(label = "Time (Days)") + ylab(label = "Cell Number") 
 
-p3 <- ggplot(data = dtotal, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
-  scale_color_manual(values = c("B_total" = "black", "T_total" = "red", "PBL_B"="blue", "PBL_T" = "hotpink")) +
-  geom_point(data =PBL_B, mapping = aes(x = time/24, y = value_B, colour = "PBL_B"), inherit.aes = FALSE) +  
-  geom_point(data =PBL_B, mapping = aes(x = time/24, y = value_T, colour = "PBL_T"), inherit.aes = FALSE) +   
-  labs(title = "WithinHost Delay - Blood Total", color = "Cell Type", subtitle = paste("log transformation + abs values")) + 
-  theme(legend.position = "right",panel.grid = element_blank(), panel.background = element_blank(),  legend.text = element_text(size = 12), 
-                                                                                                                                   legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + xlab(label = "Time (Days)") + 
-  ylab(label = "Cell Number") 
-
-p4 <- ggplot(data = PBL_C, mapping = aes(x = time/24, y = value_B, colour = "BCellsControl")) + geom_point() + ylim(0,100000)+ 
-  scale_color_manual(values = c("BCellsControl" = "lightblue", "TCellsControl" = "pink", "infectBCells" = "blue", "InfectTcells"="red", "B_total" = "blue", "T_total" = "red")) + 
-  geom_point(data =PBL_C, mapping = aes(x = time/24, y = value_T, colour = "TCellsControl")) +  
-  geom_point(data =PBL_B, mapping = aes(x = time/24, y = value_B, colour = "infectBCells")) + 
+p4 <- ggplot(data = PBL_B, mapping = aes(x = time/24, y = value_B, colour = "infectBCells")) + geom_point() + 
+  scale_color_manual(values = c("infectBCells" = "blue", "InfectTcells"="red", "B_total" = "blue", "T_total" = "red")) + 
   geom_point(data =PBL_B, mapping = aes(x = time/24, y = value_T, colour = "InfectTcells")) + 
   geom_line(data = dtotal %>% filter(variable == "B_total"), aes(x = time/24, y = value, colour = "B_total")) + 
   geom_line(data = dtotal %>% filter(variable == "T_total"), aes(x = time/24, y = value, colour = "T_total")) + 
@@ -230,7 +224,8 @@ p4 <- ggplot(data = PBL_C, mapping = aes(x = time/24, y = value_B, colour = "BCe
 
 
 
-(p1 | p2)/p3 + plot_layout(widths = c(2,2))  
+
+(p1 | p2| p3)/p4 + plot_layout(widths = c(2,2))  
 
 
 
