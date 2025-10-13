@@ -1,4 +1,4 @@
-
+rm(list = ls())
 library(deSolve)  
 library(reshape2) 
 library(ggplot2)
@@ -7,7 +7,7 @@ library(patchwork)
 library(writexl) 
 library(readxl)  
 library(purrr) 
-PBL_data <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/PayneRennie1976raw.xlsx")
+
 
 sir_equations <- function(time, variables, parameters) {
   with(as.list(c(variables, parameters)), { 
@@ -85,18 +85,104 @@ sir_equations <- function(time, variables, parameters) {
   }) 
 }
 
+params <-  c( 9.969426e-5 , 4.081772e-10,1.347721e-15, 3.693628e-7)
+Likelihood <- function(params){   
+  pars <- parameters_values 
+  pars["mu_o"] <- abs(params[1])
+  pars["mu_t"] <- abs(params[2])  
+  pars["beta"] <- abs(params[3])  
+  pars["beta_2"] <-  abs(params[4])
+  
+  
+  
+  
+  
+  # 
+  #creating model and replacing with new beta values 
+  results <- as.data.frame(ode(y = initial_values, 
+                               times = time_values, func = sir_equations, parms = pars))
+  
+  ### MODEL ### 
+  #adding up all the types of B cells and all types of T cells
+  dtotal <-  results %>% mutate(B_total = rowSums(across(c(Bb_cells, Cbb_cells)))) %>% mutate(T_total = rowSums(across(c(Tb_cells, Atb_cells, Ltb_cells, Ctb_cells)))) %>% 
+    melt(id.vars = "time") %>% filter(variable %in% c("B_total", "T_total")) 
+  
+  #match model time with observed PBL data 
+  dtotallike_B <- dtotal %>% filter(time %in% obs_hours, variable %in% c("B_total"))   # changing to %in% because apparently better   
+  dtotallike_T <- dtotal %>% filter(time %in% obs_hours, variable %in% c("T_total"))   
+  
+  
+  #getting % CYTOLYTICALLY infected from model - SPLEEN (filtering by spleen via initial value name )
+  infprob <- results %>% select(B_cells, Cb, Ct, T_cells, At,Lt, Lt2, Lt3, Lt4, Lt5, time)  %>% mutate(prob_Cb = Cb/(Cb+B_cells), prob_Ct = Ct/(T_cells+Ct+Lt+Lt2+Lt3+Lt4+Lt5+At)) 
+  infprob_Bu <- results %>% select(B_bu, Cb_bu, Ct_bu, T_bu, At_bu,Lt_bu, Lt2_bu, Lt3_bu, Lt4_bu, Lt5_bu, time)  %>% mutate(prob_Cb_bu = Cb_bu/(Cb_bu+B_bu), prob_Ct_bu = Ct_bu/(T_bu+Ct_bu+Lt_bu+Lt2_bu+Lt3_bu+Lt4_bu+Lt5_bu+At_bu)) 
+  
+  #match MODEL time with observed PP38 data time (in hours) 
+  matchedTime <- infprob %>% filter(time %in% obs_hourspp38) %>% mutate(Bprop = B_cells/(B_cells+T_cells), Tprop = T_cells/(B_cells+T_cells)) 
+  matchedTime_Bu <- infprob_Bu %>% filter(time %in% obs_hourspp38) %>% mutate(Bprop = B_bu/(B_bu+T_bu), Tprop = T_bu/(B_bu+T_bu))  
+  
+  
+  #empty list 
+  #result <- vector(mode = "list", length = nrow(dtotallike))   
+  LogLHoodStor=0 
+  
+  for (i in seq_len(nrow(dtotallike_B)) ) {  
+    obs_vec_B <- PBL_B %>% filter(time %in% dtotallike_B$time[i]) %>% pull(value_B) 
+    obs_vec_T <- PBL_B %>% filter(time %in% dtotallike_T$time[i]) %>% pull(value_T)
+    mu_B <- dtotallike_B$value[i]
+    if(mu_B<0){print(mu_B)}
+    mu_T <- dtotallike_T$value[i]
+    loglike_B <- dnorm(log(obs_vec_B), log(mu_B), sd = 1, log = TRUE)  
+    loglike_T <- dnorm(log(obs_vec_T), log(mu_T), sd = 1, log = TRUE)  
+    LogLHoodStor=LogLHoodStor+sum(loglike_B, loglike_T)
+    #result[[i]] <- data.frame(time = rep(dtotallike$time[i], length(obs_vec)) , obs = obs_vec, model_val = rep( mu, length(obs_vec)) , likelihood = loglike) 
+  }
+  
+  for (i in seq_len(nrow(matchedTime))) { 
+    obs_cytoBcells <- pp38_Spleen %>% filter(time %in% matchedTime$time[i]) %>% pull(Bcell_no) # matching data to model time for B  
+    obs_cytoTcells <- pp38_Spleen %>% filter(time %in% matchedTime$time[i]) %>% pull(Tcell_no)
+      loglike_B_pp38 <- dbinom(obs_cytoBcells, as.integer(round(40000*matchedTime$Bprop[i])), prob = matchedTime$prob_Cb[i], log = TRUE) #binomial doesnt like when = 1?    
+      loglike_T_pp38 <- dbinom(obs_cytoTcells, as.integer(round(40000*matchedTime$Tprop[i])), prob = matchedTime$prob_Ct[i], log = TRUE)
+      LogLHoodStor=LogLHoodStor+sum(loglike_B_pp38,loglike_T_pp38, na.rm= TRUE)
+      #result[[i]] <- data.frame(time = rep(dtotallike$time[i], length(obs_vec)) , obs = obs_vec, model_val = rep( mu, length(obs_vec)) , likelihood = loglike) 
+    
+  } 
+  #sum_log <- result %>% map_dbl(~sum(.x[["likelihood"]])) 
+  #likelihood <- -sum(sum_log) 
+  # merged_data <- data %>%
+  #   left_join(subset_I, by = "time")
+  # 
+  # MaxLike <- merged_data %>% mutate(logLike = log(dbinom(SampledInfected, SampleSize, I))) 
+  # 
+  # 
+  # sumLog <- -sum(MaxLike$logLike)
+  print(c(-LogLHoodStor, pars["mu_o"], pars["beta"], pars["beta_2"], pars["mu_t"]))
+  return(-LogLHoodStor)
+}
+
+## DATA ##  
+# PBL data for B and T cell infection in blood 
+PBL_data <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/PayneRennie1976raw.xlsx")  
+
+#cytolytic infection at a given time of B and T cells in Spleen, Thymus, Bursa 
+pp38_dat <- read_xlsx("baigent1998.xlsx", sheet = 3, na = "NA") 
+
+#leaving NA for correct loop number, and filtering for Spleen organ only, Combining all T cells (CD4+CD8)
+pp38_Spleen <- pp38_dat %>% filter(Organ == "spleen") %>% mutate(Tcell_no = CD4_no+CD8_no)
+
+
+
 #blah blah adding someing
 parameters_values <- c(
   M = 5.0e-15
-  , beta = 1.25970200878719e-10     #contact rate with B cells
-  , beta_2 = 5.35396842407547e-06 #contact rate with T cells
+  , beta = 1.347721e-100    #contact rate with B cells
+  , beta_2 = 3.693628e-400  #contact rate with T cells
   , nu_A = 0.0001             #Activation rate of T cells by cytolytic B cells (hours)
   , nu_b = 0.0001             #Activation rate of T cells by cytolytic T cells (hours)
   , nu_F =0.07             #Infection rate of follicular cells (hours)
-  , mu_o = 9.96941772035861e-05  #rate of circulation of any B cell lineage into the blood  
+  , mu_o =  9.969426e-01   #rate of circulation of any B cell lineage into the blood  
   , mu_p = 9.969426e-15        #rate of circulation to lymphoid organs
-  , mu_t = 4.98515211627044e-06  #rate of circulation of any T cell lineage into the blood 
-  , alpha =1.043835e-03   #death rate of cytolytic B cells (every 33 hours)
+  , mu_t =  4.081772e-02   #rate of circulation of any T cell lineage into the blood 
+  , alpha = 1.043835e-03   #death rate of cytolytic B cells (every 33 hours)
   , alpha_2 = 0.1          #death rate of cytolytic T cells (every 48 hours)
   , alpha_B = 0.1
   , theta = 0.8            #population of activated T cells
@@ -159,70 +245,26 @@ initial_values <- c(
   dZ_sp = 0, 
   dZ_th = 0, 
   dZ_bu = 0 
-)
+) 
+
+time_values <- seq(0, 1080, by = 1) # hours875875462 
+
+# PBL TIME 
+obs_hours <- as.numeric((unique(PBL_data$time)) * 24)   
+#PP38 Time 
+obs_hourspp38 <- c(72,96,120,144)
 
 
-
-time_values <- seq(0, 1080, by = 1) # hours
-obs_hours <- as.numeric((unique(PBL_data$time)) * 24) 
-
-
-
-sir_values_1 <- ode(
-  y = initial_values,
-  times = time_values,
-  func = sir_equations,
-  parms = parameters_values 
-)  
-
-
-
-
-#added strings as factors because otherwise turns into factors for some reason 
-sir_values_1 <- as.data.frame(sir_values_1, stringsAsFactors = FALSE) 
-
-#turning into long dataframe 
-df <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_cells","Cb","Ct","T_cells","At","Lt5", "dZ_sp"))  
-df2 <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_bu","Cb_bu","Ct_bu", "T_bu","At_bu","Lt5_bu","dZ_bu"))   
-df3 <-  melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_th","Cb_th", "Ct_th", "T_th","At_th","Lt5_th","dZ_th" )) 
-dtotal <-  sir_values_1 %>% mutate(B_total = rowSums(across(c(Bb_cells, Cbb_cells)))) %>% mutate(T_total = rowSums(across(c(Tb_cells, Atb_cells, Ltb_cells, Ctb_cells)))) %>% 
-  melt(id.vars = "time") %>% filter(variable %in% c("B_total", "T_total"))  
 #data from paper 
 PBL_B <- PBL_data %>% filter(variable_B == "infectBCells", variable_T == "InfectTcells") %>% mutate(time = time*24)
-PBL_C <- PBL_data %>% filter(variable_B == "BCellsControl", variable_T == "TCellsControl") %>% mutate(time = time*24)
-#matching total model times with obs data times 
-dtotallike <- dtotal %>% filter(time %in% obs_hours, variable == "B_total") 
+
+test_parms <- c( 9.969426e-5 , 4.081772e-10,1.347721e-15, 3.693628e-7)
 
 
-p1 <-ggplot(data = df, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
-  scale_color_manual(values = c("B_cells" = "black", "T_cells" = "red", "Cb"="green", "Lt5" = "purple", 
-                                "Ct" = "yellow", "dZ_sp" = "lightblue", "At"="blue")) +
-  labs(title = "WithinHost Delay - Spleen", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() + 
-  xlab(label = "Time (Days)") + ylab(label = "Cell Number") 
+Likelihood(test_parms)
 
-p1
-p2 <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() +
-  scale_color_manual(values = c("B_bu" = "black", "T_bu" = "red", "Cb_bu"="green", "Lt5_bu" = "purple",
-                                "Ct_bu" = "yellow", "dZ_bu" = "lightblue", "At_bu"="blue")) +
-  labs(title = "WithinHost Delay - Bursa", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() +
-  xlab(label = "Time (Days)") + ylab(label = "Cell Number")
+#### remember to transform any exp() numbers back 
+answeroptim <- optim(par = test_parms, fn = Likelihood, method = "Nelder-Mead",control = list(maxit = 5000)) 
 
-p3 <- ggplot(data = df3, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() +
-  scale_color_manual(values = c("B_th" = "black", "T_th" = "red", "Cb_th"="green", "Lt_th5" = "purple",
-                                "Ct_th" = "yellow", "dZ_th" = "lightblue", "At_th"="blue")) +
-  labs(title = "WithinHost Delay - Thymus", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() +
-  xlab(label = "Time (Days)") + ylab(label = "Cell Number")
-
-p4 <- ggplot(data = PBL_B, mapping = aes(x = time/24, y = value_B, colour = "infectBCells")) + geom_point() +
-  scale_color_manual(values = c("infectBCells" = "blue", "InfectTcells"="red", "B_total" = "blue", "T_total" = "red")) +
-  geom_point(data =PBL_B, mapping = aes(x = time/24, y = value_T, colour = "InfectTcells")) +
-  geom_line(data = dtotal %>% filter(variable == "B_total"), aes(x = time/24, y = value, colour = "B_total")) +
-  geom_line(data = dtotal %>% filter(variable == "T_total"), aes(x = time/24, y = value, colour = "T_total")) +
-  theme(panel.grid = element_blank(), panel.background = element_blank(),  legend.text = element_text(size = 12),
-        legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + labs( y = "Cell Number", x = "Time (Days)")
-
-
-
-(p1 | p2| p3)/p4 + plot_layout(widths = c(2,2))
-
-p1
+parameters <- print(answeroptim$par)
+paste("mu_0=",parameters[1], "mu_t=", parameters[2], "beta=", parameters[3], "beta_2=", parameters[4])
