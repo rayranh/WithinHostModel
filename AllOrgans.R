@@ -88,8 +88,8 @@ sir_equations <- function(time, variables, parameters) {
 #blah blah adding someing
 parameters_values <- c(
   M = 5.0e-14
-  , beta = 4.221385e-11     #contact rate with B cells
-  , beta_2 =1.697456e-10   #contact rate with T cells
+  , beta = 1.802641e-10    #contact rate with B cells
+  , beta_2 = 6.139670e-10  #contact rate with T cells
   , nu_A = 1/10            #Activation rate of T cells by cytolytic B cells (hours)
   , nu_b =  1/100          #Activation rate of T cells by cytolytic T cells (hours)
   , nu_F =0.07              #Infection rate of follicular cells (hours)
@@ -98,7 +98,7 @@ parameters_values <- c(
   , mu_t =  1/60            #rate of circulation of any T cell lineage into the blood 
   , alpha = 1/5            #death rate of cytolytic B cells (every 33 hours)
   , alpha_2 = 1/30           #death rate of cytolytic T cells (every 48 hours)
-  , alpha_B = 0.1
+  , alpha_B = 0
   , theta = 0.8            #population of activated T cells
   , g1 =10                #incoming B cells (every 15 hours)
   , g2 =1 
@@ -195,19 +195,19 @@ dtotallike <- dtotal %>% filter(time %in% obs_hours, variable == "B_total")
 
 p1 <-ggplot(data = df, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
   scale_color_manual(values = c("B_cells" = "black", "T_cells" = "red", "Cb"="green", "Lt5" = "purple", 
-                                "Ct" = "yellow", "dZ_sp" = "lightblue", "At"="blue")) +
+                                "Ct" = "yellow", "Z_sp" = "lightblue", "At"="blue")) +
   labs(title = "WithinHost Delay - Spleen", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() + 
   xlab(label = "Time (Days)") + ylab(label = "Cell Number")
 
 p2 <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() +
   scale_color_manual(values = c("B_bu" = "black", "T_bu" = "red", "Cb_bu"="green", "Lt5_bu" = "purple",
-                                "Ct_bu" = "yellow", "dZ_bu" = "lightblue", "At_bu"="blue")) +
+                                "Ct_bu" = "yellow", "Z_bu" = "lightblue", "At_bu"="blue")) +
   labs(title = "WithinHost Delay - Bursa", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() +
   xlab(label = "Time (Days)") + ylab(label = "Cell Number")
 
 p3 <- ggplot(data = df3, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() +
   scale_color_manual(values = c("B_th" = "black", "T_th" = "red", "Cb_th"="green", "Lt_th5" = "purple",
-                                "Ct_th" = "yellow", "dZ_th" = "lightblue", "At_th"="blue")) +
+                                "Ct_th" = "yellow", "Z_th" = "lightblue", "At_th"="blue")) +
   labs(title = "WithinHost Delay - Thymus", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() +
   xlab(label = "Time (Days)") + ylab(label = "Cell Number")
 
