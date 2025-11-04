@@ -85,7 +85,6 @@ sir_equations <- function(time, variables, parameters) {
   }) 
 }
 
-params <- c(1.347721e-15, 3.693628e-7)
 Likelihood <- function(params){   
   pars <- parameters_values 
   pars["beta"] <- abs(params[1])  
@@ -102,12 +101,15 @@ Likelihood <- function(params){
   
   long_df_bu <- long_results %>% filter(variable %in% c("B_bu", "T_bu", "Ct_bu", "Cb_bu", "Lt_bu", "Z_bu", "At_bu")) %>% mutate(value = log(value + 1))
   long_df_sp <- long_results %>% filter(variable %in% c("B_cells", "T_cells", "Ct", "Cb", "Lt", "Z", "At")) %>% mutate(value = log(value+1) )
-  long_df_th<- long_results %>% filter(variable %in% c("B_th", "T_th", "Ct_th", "Cb_th", "Lt_th", "Z_th", "At_th")) 
+  long_df_th<- long_results %>% filter(variable %in% c("B_th", "T_th", "Ct_th", "Cb_th", "Lt_th", "Z_th", "At_th")) %>% mutate(value = log(value+1) )
   
   model_output <- ggplot(data = long_df_th, mapping = aes(x = time, y = value, colour = variable)) + geom_line() +
-    labs(title = "Model output", x = "time", y = "cells", colour = "variable" ) 
-  # + scale_color_manual(values = c("At_bu" = "red") )
-
+    labs(title = "Model output", x = "time", y = "cells", colour = "variable" ) + scale_y_log10()
+  # # + scale_color_manual(values = c("At_bu" = "red") )
+  #model_output <- ggplot(data = long_df_bu, mapping = aes(x = time, y = value, colour = variable)) + geom_line() +
+    #labs(title = "Model output", x = "time", y = "cells", colour = "variable" ) + scale_y_log10()
+  # model_output <- ggplot(data = long_df_sp, mapping = aes(x = time, y = value, colour = variable)) + geom_line() +
+  #   labs(title = "Model output", x = "time", y = "cells", colour = "variable" ) + scale_y_log10()
   
   ### MODEL ### 
   #adding up all the types of B cells and all types of T cells
@@ -218,13 +220,13 @@ parameters_values <- c(
   , beta = 1.347721e-100    #contact rate with B cells
   , beta_2 = 3.693628e-400  #contact rate with T cells
   , nu_A = 1/10            #Activation rate of T cells by cytolytic B cells (hours)
-  , nu_b =  1/48          #Activation rate of T cells by cytolytic T cells (hours)
+  , nu_b =  1/100          #Activation rate of T cells by cytolytic T cells (hours)
   , nu_F =0.07              #Infection rate of follicular cells (hours)
-  , mu_o =  1/72            #rate of circulation of any B cell lineage into the blood  
-  , mu_p = 1/100             #rate of circulation to lymphoid organs
-  , mu_t =  1/50            #rate of circulation of any T cell lineage into the blood 
-  , alpha = 1/33            #death rate of cytolytic B cells (every 33 hours)
-  , alpha_2 = 1/48           #death rate of cytolytic T cells (every 48 hours)
+  , mu_o =  1/80            #rate of circulation of any B cell lineage into the blood  
+  , mu_p = 1/100            #rate of circulation to lymphoid organs
+  , mu_t =  1/60            #rate of circulation of any T cell lineage into the blood 
+  , alpha = 1/5            #death rate of cytolytic B cells (every 33 hours)
+  , alpha_2 = 1/30           #death rate of cytolytic T cells (every 48 hours)
   , alpha_B = 0.1
   , theta = 0.8            #population of activated T cells
   , g1 =10                #incoming B cells (every 15 hours)
@@ -237,10 +239,10 @@ parameters_values <- c(
 
 initial_values <- c( 
   # Spleen
-  B_cells = 521730000 ,
+  B_cells = 521730000/0.125,
   Cb = 0,
   Ct = 0,
-  T_cells = 454410000 ,
+  T_cells = 454410000/0.125 ,
   At = 0,
   Lt = 0,
   Lt2 = 0,
@@ -249,10 +251,10 @@ initial_values <- c(
   Lt5 = 0,
   
   # Bursa
-  B_bu = 3819980000, 
+  B_bu = 3819980000/0.325, 
   Cb_bu = 0,
   Ct_bu = 0, 
-  T_bu = 30731000,
+  T_bu = 30731000/0.325,
   At_bu = 0,
   Lt_bu = 0,
   Lt2_bu = 0,
@@ -261,10 +263,10 @@ initial_values <- c(
   Lt5_bu = 0,
   
   # Thymus
-  B_th = 12393000,
+  B_th = 12393000/0.425,
   Cb_th = 0, 
   Ct_th = 0, 
-  T_th = 4193424000,
+  T_th = 4193424000/0.425,
   At_th = 0,
   Lt_th = 0,
   Lt2_th = 0,
@@ -281,11 +283,12 @@ initial_values <- c(
   Ctb_cells = 0,
   
   # Feather follicle & tumor
-  f = 20,
+  f = 400000,
   If = 0,
   dZ_sp = 0, 
   dZ_th = 0, 
-  dZ_bu = 0 
+  dZ_bu = 0       #### I feel like this is wrong 
+  
 ) 
 
 time_values <- seq(0, 1080, by = 1) # hours875875462 
@@ -299,7 +302,7 @@ obs_hourspp38 <- c(72,96,120,144)
 #data from paper 
 PBL_B <- PBL_data %>% filter(variable_B == "infectBCells", variable_T == "InfectTcells") %>% mutate(time = time*24)
 
-test_parms <- c(1.347721e-1, 3.693628e-1)
+test_parms <- c(2.8e-11, 2.8e-14)
 
 
 Likelihood(test_parms)
