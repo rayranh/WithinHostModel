@@ -89,7 +89,8 @@ Likelihood <- function(params){
   pars <- parameters_values 
   pars["beta"] <- abs(params[1])  
   pars["beta_2"] <-  abs(params[2])
-  
+  pars["mu_o"] <- abs(params[3])  
+  pars["mu_p"] <-  abs(params[4])
   
   
   # 
@@ -227,7 +228,7 @@ parameters_values <- c(
   , mu_t =  1/60            #rate of circulation of any T cell lineage into the blood 
   , alpha = 1/5            #death rate of cytolytic B cells (every 33 hours)
   , alpha_2 = 1/30           #death rate of cytolytic T cells (every 48 hours)
-  , alpha_B = 0.1
+  , alpha_B = 0
   , theta = 0.8            #population of activated T cells
   , g1 =10                #incoming B cells (every 15 hours)
   , g2 =1 
@@ -237,43 +238,43 @@ parameters_values <- c(
   , epsilon = 0.01
 )
 
-initial_values <- c( 
+initial_values <- c(
   # Spleen
-  B_cells = 521730000/0.125,
+  B_cells = 130432500/0.125,
   Cb = 0,
   Ct = 0,
-  T_cells = 454410000/0.125 ,
+  T_cells = 113602500/0.125,
   At = 0,
   Lt = 0,
   Lt2 = 0,
   Lt3 = 0,
   Lt4 = 0,
   Lt5 = 0,
-  
+
   # Bursa
-  B_bu = 3819980000/0.325, 
+  B_bu = 954995000/0.325,
   Cb_bu = 0,
-  Ct_bu = 0, 
-  T_bu = 30731000/0.325,
+  Ct_bu = 0,
+  T_bu = 7682750/0.325,
   At_bu = 0,
   Lt_bu = 0,
   Lt2_bu = 0,
   Lt3_bu = 0,
   Lt4_bu = 0,
   Lt5_bu = 0,
-  
+
   # Thymus
-  B_th = 12393000/0.425,
-  Cb_th = 0, 
-  Ct_th = 0, 
-  T_th = 4193424000/0.425,
+  B_th = 3098250/0.425,
+  Cb_th = 0,
+  Ct_th = 0,
+  T_th = 1048356000/0.425,
   At_th = 0,
   Lt_th = 0,
   Lt2_th = 0,
   Lt3_th = 0,
   Lt4_th = 0,
   Lt5_th = 0,
-  
+
   # Blood pools
   Bb_cells = 0,
   Cbb_cells = 0,
@@ -281,15 +282,16 @@ initial_values <- c(
   Atb_cells = 0,
   Ltb_cells = 0,
   Ctb_cells = 0,
-  
+
   # Feather follicle & tumor
   f = 400000,
   If = 0,
-  dZ_sp = 0, 
-  dZ_th = 0, 
-  dZ_bu = 0       #### I feel like this is wrong 
-  
-) 
+  Z_sp = 0,
+  Z_th = 0,
+  Z_bu = 0       #### I feel like this is wrong
+
+)
+
 
 time_values <- seq(0, 1080, by = 1) # hours875875462 
 
@@ -302,7 +304,7 @@ obs_hourspp38 <- c(72,96,120,144)
 #data from paper 
 PBL_B <- PBL_data %>% filter(variable_B == "infectBCells", variable_T == "InfectTcells") %>% mutate(time = time*24)
 
-test_parms <- c(2.8e-11, 2.8e-14)
+test_parms <- c(2.8e-11, 2.8e-14,1/10,1/10)
 
 
 Likelihood(test_parms)
@@ -311,5 +313,5 @@ Likelihood(test_parms)
 answeroptim <- optim(par = test_parms, fn = Likelihood, method = "Nelder-Mead",control = list(maxit = 5000)) 
 
 parameters <- print(answeroptim$par)
-paste("beta=", parameters[1], "beta_2=", parameters[2])
+paste("beta=", parameters[1], "beta_2=", parameters[2],"mu_o=", parameters[3],"mu_p=", parameters[4])
 
