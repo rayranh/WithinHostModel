@@ -87,33 +87,33 @@ sir_equations <- function(time, variables, parameters) {
 
 #blah blah adding someing
 parameters_values <- c(
-  M = 5.0e-15
-  , beta = 1.25970200878719e-10     #contact rate with B cells
-  , beta_2 = 5.35396842407547e-06 #contact rate with T cells
-  , nu_A = 0.0001             #Activation rate of T cells by cytolytic B cells (hours)
-  , nu_b = 0.0001             #Activation rate of T cells by cytolytic T cells (hours)
-  , nu_F =0.07             #Infection rate of follicular cells (hours)
-  , mu_o = 9.96941772035861e-05  #rate of circulation of any B cell lineage into the blood  
-  , mu_p = 9.969426e-15        #rate of circulation to lymphoid organs
-  , mu_t = 4.98515211627044e-06  #rate of circulation of any T cell lineage into the blood 
-  , alpha =1.043835e-03   #death rate of cytolytic B cells (every 33 hours)
-  , alpha_2 = 0.1          #death rate of cytolytic T cells (every 48 hours)
+  M = 5.0e-14
+  , beta = 4.221385e-11     #contact rate with B cells
+  , beta_2 =1.697456e-10   #contact rate with T cells
+  , nu_A = 1/10            #Activation rate of T cells by cytolytic B cells (hours)
+  , nu_b =  1/100          #Activation rate of T cells by cytolytic T cells (hours)
+  , nu_F =0.07              #Infection rate of follicular cells (hours)
+  , mu_o =  1/80            #rate of circulation of any B cell lineage into the blood  
+  , mu_p = 1/100            #rate of circulation to lymphoid organs
+  , mu_t =  1/60            #rate of circulation of any T cell lineage into the blood 
+  , alpha = 1/5            #death rate of cytolytic B cells (every 33 hours)
+  , alpha_2 = 1/30           #death rate of cytolytic T cells (every 48 hours)
   , alpha_B = 0.1
   , theta = 0.8            #population of activated T cells
-  , g1 =  0.01             #incoming B cells (every 15 hours)
-  , g2 =0.01
-  , h1 = 0                 #incoming T cells / determined no incoming T cells
-  , h2 = 10
+  , g1 =10                #incoming B cells (every 15 hours)
+  , g2 =1 
+  , h1 = 10                #incoming T cells / determined no incoming T cells
+  , h2 = 1
   , lambda = 0.005 #adding delay, how long latent cell 'exposed'  
   , epsilon = 0.01
 )
 
 initial_values <- c( 
   # Spleen
-  B_cells = 521730000 ,
+  B_cells = 130432500/0.125,
   Cb = 0,
   Ct = 0,
-  T_cells = 454410000 ,
+  T_cells = 113602500/0.125,
   At = 0,
   Lt = 0,
   Lt2 = 0,
@@ -122,10 +122,10 @@ initial_values <- c(
   Lt5 = 0,
   
   # Bursa
-  B_bu = 3819980000, 
+  B_bu = 954995000/0.325, 
   Cb_bu = 0,
   Ct_bu = 0, 
-  T_bu = 30731000,
+  T_bu = 7682750/0.325,
   At_bu = 0,
   Lt_bu = 0,
   Lt2_bu = 0,
@@ -134,10 +134,10 @@ initial_values <- c(
   Lt5_bu = 0,
   
   # Thymus
-  B_th = 12393000,
+  B_th = 3098250/0.425,
   Cb_th = 0, 
   Ct_th = 0, 
-  T_th = 4193424000,
+  T_th = 1048356000/0.425,
   At_th = 0,
   Lt_th = 0,
   Lt2_th = 0,
@@ -154,14 +154,13 @@ initial_values <- c(
   Ctb_cells = 0,
   
   # Feather follicle & tumor
-  f = 20,
+  f = 400000,
   If = 0,
-  dZ_sp = 0, 
-  dZ_th = 0, 
-  dZ_bu = 0 
-)
-
-
+  Z_sp = 0, 
+  Z_th = 0, 
+  Z_bu = 0       #### I feel like this is wrong 
+  
+) 
 
 time_values <- seq(0, 1080, by = 1) # hours
 obs_hours <- as.numeric((unique(PBL_data$time)) * 24) 
@@ -182,10 +181,10 @@ sir_values_1 <- ode(
 sir_values_1 <- as.data.frame(sir_values_1, stringsAsFactors = FALSE) 
 
 #turning into long dataframe 
-df <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_cells","Cb","Ct","T_cells","At","Lt5", "dZ_sp"))  
-df2 <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_bu","Cb_bu","Ct_bu", "T_bu","At_bu","Lt5_bu","dZ_bu"))   
-df3 <-  melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_th","Cb_th", "Ct_th", "T_th","At_th","Lt5_th","dZ_th" )) 
-dtotal <-  sir_values_1 %>% mutate(B_total = rowSums(across(c(Bb_cells, Cbb_cells)))) %>% mutate(T_total = rowSums(across(c(Tb_cells, Atb_cells, Ltb_cells, Ctb_cells)))) %>% 
+df <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_cells","Cb","Ct","T_cells","At","Lt5", "Z_sp"))  
+df2 <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_bu","Cb_bu","Ct_bu", "T_bu","At_bu","Lt5_bu","Z_bu"))   
+df3 <-  melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_th","Cb_th", "Ct_th", "T_th","At_th","Lt5_th","Z_th" )) 
+dtotal <-  sir_values_1 %>% mutate(B_total = rowSums(across(c(Bb_cells, Cbb_cells))/7500)) %>% mutate(T_total = rowSums(across(c(Tb_cells, Atb_cells, Ltb_cells, Ctb_cells))/7500)) %>% 
   melt(id.vars = "time") %>% filter(variable %in% c("B_total", "T_total"))  
 #data from paper 
 PBL_B <- PBL_data %>% filter(variable_B == "infectBCells", variable_T == "InfectTcells") %>% mutate(time = time*24)
@@ -198,9 +197,8 @@ p1 <-ggplot(data = df, aes(x = time/24, y = value, group = variable, colour = va
   scale_color_manual(values = c("B_cells" = "black", "T_cells" = "red", "Cb"="green", "Lt5" = "purple", 
                                 "Ct" = "yellow", "dZ_sp" = "lightblue", "At"="blue")) +
   labs(title = "WithinHost Delay - Spleen", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() + 
-  xlab(label = "Time (Days)") + ylab(label = "Cell Number") 
+  xlab(label = "Time (Days)") + ylab(label = "Cell Number")
 
-p1
 p2 <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() +
   scale_color_manual(values = c("B_bu" = "black", "T_bu" = "red", "Cb_bu"="green", "Lt5_bu" = "purple",
                                 "Ct_bu" = "yellow", "dZ_bu" = "lightblue", "At_bu"="blue")) +
@@ -214,15 +212,17 @@ p3 <- ggplot(data = df3, aes(x = time/24, y = value, group = variable, colour = 
   xlab(label = "Time (Days)") + ylab(label = "Cell Number")
 
 p4 <- ggplot(data = PBL_B, mapping = aes(x = time/24, y = value_B, colour = "infectBCells")) + geom_point() +
-  scale_color_manual(values = c("infectBCells" = "blue", "InfectTcells"="red", "B_total" = "blue", "T_total" = "red")) +
+  scale_color_manual(values = c("infectBCells" = "blue", "InfectTcells"="red", "B_total" = "blue", "T_total" = "red"))  + 
   geom_point(data =PBL_B, mapping = aes(x = time/24, y = value_T, colour = "InfectTcells")) +
   geom_line(data = dtotal %>% filter(variable == "B_total"), aes(x = time/24, y = value, colour = "B_total")) +
-  geom_line(data = dtotal %>% filter(variable == "T_total"), aes(x = time/24, y = value, colour = "T_total")) +
+  geom_line(data = dtotal %>% filter(variable == "T_total"), aes(x = time/24, y = value, colour = "T_total")) + scale_y_log10(limits = c(1000, 100000)) + 
   theme(panel.grid = element_blank(), panel.background = element_blank(),  legend.text = element_text(size = 12),
         legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + labs( y = "Cell Number", x = "Time (Days)")
 
 
 
-(p1 | p2| p3)/p4 + plot_layout(widths = c(2,2))
+(p1 | p2| p3)/p4 + plot_layout(widths = c(2,2)) 
 
-p1
+p4
+
+
