@@ -218,14 +218,14 @@ ggplot( data = long_pp38_Spleen, mapping = aes(x = time, y = mean, color = varia
 #blah blah adding someing
 parameters_values <- c(
   M = 5.0e-14
-  , beta = 1.347721e-100    #contact rate with B cells
-  , beta_2 = 3.693628e-400  #contact rate with T cells
+  , beta = 2.564424e-10    #contact rate with B cells
+  , beta_2 = 9.631477e-16   #contact rate with T cells
   , nu_A = 1/10            #Activation rate of T cells by cytolytic B cells (hours)
   , nu_b =  1/100          #Activation rate of T cells by cytolytic T cells (hours)
   , nu_F =0.07              #Infection rate of follicular cells (hours)
-  , mu_o =  1/80            #rate of circulation of any B cell lineage into the blood  
-  , mu_p = 1/100            #rate of circulation to lymphoid organs
-  , mu_t =  1/60            #rate of circulation of any T cell lineage into the blood 
+  , mu_o =1/5            #rate of circulation of any B cell lineage into the blood  
+  , mu_p =1/3           #rate of circulation to lymphoid organs
+  , mu_t =1/5            #rate of circulation of any T cell lineage into the blood 
   , alpha = 1/5            #death rate of cytolytic B cells (every 33 hours)
   , alpha_2 = 1/30           #death rate of cytolytic T cells (every 48 hours)
   , alpha_B = 0
