@@ -21,7 +21,7 @@ sir_equations <- function(time, variables, parameters) {
     dLt2 <- lambda*Lt - lambda*Lt2 
     dLt3 <- lambda*Lt2 - lambda*Lt3 
     dLt4 <- lambda*Lt3 - lambda*Lt4
-    dLt5 <- lambda*Lt4 - lambda*Lt5 - mu_t*Lt5 - epsilon*Lt5 +  mu_p*Ltb_cells   
+    dLt5 <- lambda*Lt4 - lambda*Lt5 - mu_t*Lt5 - epsilon*Lt5  
     dZ_sp <- epsilon*Lt5 
     
     ### Bursa ### 
@@ -30,7 +30,7 @@ sir_equations <- function(time, variables, parameters) {
     dCt_bu  <- (1-theta)*(beta_2*Ct_bu*At_bu + beta*Cb_bu*At_bu) - alpha_2*Ct_bu - mu_t*Ct_bu + mu_p*Ctb_cells
     dT_bu   <- -M*T_bu - nu_A*Cb_bu*T_bu - nu_b*Ct_bu*T_bu + (h1*(Cb_bu+Ct_bu)/(h2+(Cb_bu+Ct_bu))) - mu_t*T_bu + mu_p*Tb_cells
     dAt_bu  <-  M*T_bu + nu_A*Cb_bu*T_bu + nu_b*Ct_bu*T_bu - beta_2*Ct_bu*At_bu - beta*Cb_bu*At_bu - mu_t*At_bu + mu_p*Atb_cells  
-    dLt_bu  <-  theta*(beta_2*Ct_bu*At_bu + beta*Cb_bu*At_bu) - lambda*Lt_bu + mu_p*Ltb_cells   # no mu*Lt_bu, only terminal contributes to tumors
+    dLt_bu  <-  theta*(beta_2*Ct_bu*At_bu + beta*Cb_bu*At_bu) - lambda*Lt_bu  # no mu*Lt_bu, only terminal contributes to tumors
     dLt2_bu <-  lambda*Lt_bu - lambda*Lt2_bu 
     dLt3_bu <-  lambda*Lt2_bu - lambda*Lt3_bu 
     dLt4_bu <-  lambda*Lt3_bu - lambda*Lt4_bu
@@ -44,7 +44,7 @@ sir_equations <- function(time, variables, parameters) {
     dCt_th  <- (1-theta)*(beta_2*Ct_th*At_th + beta*Cb_th*At_th) - alpha_2*Ct_th - mu_t*Ct_th + mu_p*Ctb_cells
     dT_th   <- -M*T_th - nu_A*Cb_th*T_th - nu_b*Ct_th*T_th + (h1*(Cb_th+Ct_th)/(h2+(Cb_th+Ct_th))) - mu_t*T_th + mu_p*Tb_cells
     dAt_th  <-  M*T_th + nu_A*Cb_th*T_th + nu_b*Ct_th*T_th - beta_2*Ct_th*At_th - beta*Cb_th*At_th - mu_t*At_th + mu_p*Atb_cells  
-    dLt_th  <-  theta*(beta_2*Ct_th*At_th + beta*Cb_th*At_th) - lambda*Lt_th + mu_p*Ltb_cells     # no mu*Lt_th, only terminal contributes to tumors
+    dLt_th  <-  theta*(beta_2*Ct_th*At_th + beta*Cb_th*At_th) - lambda*Lt_th    # no mu*Lt_th, only terminal contributes to tumors
     dLt2_th <-  lambda*Lt_th - lambda*Lt2_th 
     dLt3_th <-  lambda*Lt2_th - lambda*Lt3_th 
     dLt4_th <-  lambda*Lt3_th - lambda*Lt4_th
@@ -58,7 +58,7 @@ sir_equations <- function(time, variables, parameters) {
     dCbb_cells <- mu_o*Cb + mu_o*Cb_th + mu_o*Cb_bu - 3*mu_p*Cbb_cells  - alpha_B*Cbb_cells   
     dTb_cells  <- mu_t*T_cells + mu_t*T_th + mu_t*T_bu - 3*mu_p*Tb_cells - alpha_B*Tb_cells  
     dAtb_cells <- mu_t*At + mu_t*At_th + mu_t*At_bu - 3*mu_p*Atb_cells   # no death for At cells 
-    dLtb_cells <- mu_t*Lt5 + mu_t*Lt5_th + mu_t*Lt5_bu - 3*mu_p*Ltb_cells - epsilon*f*Ltb_cells  
+    dLtb_cells <- mu_t*Lt5 + mu_t*Lt5_th + mu_t*Lt5_bu- nu_F*Ltb_cells*f 
     dCtb_cells  <- mu_t*Ct + mu_t*Ct_th + mu_t*Ct_bu - 3*mu_p*Ctb_cells - alpha_B*Ctb_cells   
     
     
@@ -83,57 +83,114 @@ sir_equations <- function(time, variables, parameters) {
     )))
     
   }) 
-}
-parameters_values <- c(
-  M = 5.0e-14
-  , beta = 8.564424e-2    #contact rate with B cells
-  , beta_2 = 8.631477e-4   #contact rate with T cells
-  , nu_A = 1/50          #Activation rate of T cells by cytolytic B cells (hours)
-  , nu_b =  1/100          #Activation rate of T cells by cytolytic T cells (hours)
-  , nu_F =0.07              #Infection rate of follicular cells (hours)
-  , mu_o =1/20            #rate of circulation of any B cell lineage into the blood  
-  , mu_p =1/500           #rate of circulation to lymphoid organs
-  , mu_t =1/20            #rate of circulation of any T cell lineage into the blood 
-  , alpha = 1/5            #death rate of cytolytic B cells (every 33 hours)
-  , alpha_2 = 1/5           #death rate of cytolytic T cells (every 48 hours)
-  , alpha_B = 0
-  , theta = 0.8            #population of activated T cells
-  , g1 =10                #incoming B cells (every 15 hours)
-  , g2 =1 
-  , h1 = 10                #incoming T cells / determined no incoming T cells
-  , h2 = 1
-  , lambda = 0.005 #adding delay, how long latent cell 'exposed'  
-  , epsilon = 0.01
-)
+} 
+
 
 # parameters_values <- c(
 #   M = 5.0e-14
-#   , beta = 2.378031e-10  #contact rate with B cells
-#   , beta_2 = 1.883139e-15  #contact rate with T cells
-#   , nu_A = 1/5            #Activation rate of T cells by cytolytic B cells (hours)
-#   , nu_b = 1/20         #Activation rate of T cells by cytolytic T cells (hours)
+#   , beta =1.738284e-10 #contact rate with B cells
+#   , beta_2 = 2.801135e-16   #contact rate with T cells
+#   , nu_A = 1/10            #Activation rate of T cells by cytolytic B cells (hours)
+#   , nu_b =  1/100          #Activation rate of T cells by cytolytic T cells (hours)
 #   , nu_F =0.07              #Infection rate of follicular cells (hours)
-#   , mu_o =2.000000e-01             #rate of circulation of any B cell lineage into the blood
-#   , mu_p = 3.666646e-01          #rate of circulation to lymphoid organs
-#   , mu_t = 2.000020e-01            #rate of circulation of any T cell lineage into the blood
-#   , alpha = 1/24            #death rate of cytolytic B cells (every 33 hours)
-#   , alpha_2 = 1/24           #death rate of cytolytic T cells (every 48 hours)
+#   , mu_o = 2.042991e-01            #rate of circulation of any B cell lineage into the blood  
+#   , mu_p = 3.593120e-01          #rate of circulation to lymphoid organs
+#   , mu_t = 1.988200e-01           #rate of circulation of any T cell lineage into the blood 
+#   , alpha = 1/200            #death rate of cytolytic B cells (every 33 hours)
+#   , alpha_2 = 1/200          #death rate of cytolytic T cells (every 48 hours)
 #   , alpha_B = 0
 #   , theta = 0.8            #population of activated T cells
-#   , g1 =  1e-15                 #incoming B cells (every 15 hours)
-#   , g2 = 0.05
-#   , h1 = 5e-5              #incoming T cells / determined no incoming T cells
-#   , h2 = 0.05
-#   , lambda = 0.015 #adding delay, how long latent cell 'exposed'
-#   , epsilon = 0.1
+#   , g1 =10                #incoming B cells (every 15 hours)
+#   , g2 =1 
+#   , h1 = 10                #incoming T cells / determined no incoming T cells
+#   , h2 = 1
+#   , lambda = 0.005 #adding delay, how long latent cell 'exposed'  
+#   , epsilon = 0.5
 # )
 
+parameters_values <- c(
+  M = 1.0e-5
+  , beta =2.531003e-10 #contact rate with B cells
+  , beta_2 = 4.287511e-15   #contact rate with T cells
+  , nu_A = 1/100            #Activation rate of T cells by cytolytic B cells (hours)
+  , nu_b = 1/100          #Activation rate of T cells by cytolytic T cells (hours)
+  , nu_F =0.07              #Infection rate of follicular cells (hours)
+  , mu_o = 3.042871e-01            #rate of circulation of any B cell lineage into the blood  
+  , mu_p = 1.897506e-01          #rate of circulation to lymphoid organs
+  , mu_t = 1.988200e-01           #rate of circulation of any T cell lineage into the blood 
+  , alpha = 1/20            #death rate of cytolytic B cells (every 33 hours)
+  , alpha_2 = 1/20          #death rate of cytolytic T cells (every 48 hours)
+  , alpha_B = 0
+  , theta = 0.8            #population of activated T cells
+  , g1 =5               #incoming B cells (every 15 hours)
+  , g2 =1 
+  , h1 = 5                #incoming T cells / determined no incoming T cells
+  , h2 = 1
+  , lambda = 0.05 #adding delay, how long latent cell 'exposed'  
+  , epsilon = 0.5
+)
+
+# initial_values <- c(
+#   # Spleen
+#   B_cells = 130432500/0.125,
+#   Cb = 0,
+#   Ct = 0,
+#   T_cells = 113602500/0.125,
+#   At = 0,
+#   Lt = 0,
+#   Lt2 = 0,
+#   Lt3 = 0,
+#   Lt4 = 0,
+#   Lt5 = 0,
+#   
+#   # Bursa
+#   B_bu = 954995000/0.325,
+#   Cb_bu = 0,
+#   Ct_bu = 0,
+#   T_bu = 7682750/0.325,
+#   At_bu = 0,
+#   Lt_bu = 0,
+#   Lt2_bu = 0,
+#   Lt3_bu = 0,
+#   Lt4_bu = 0,
+#   Lt5_bu = 0,
+#   
+#   # Thymus
+#   B_th = 3098250/0.425,
+#   Cb_th = 0,
+#   Ct_th = 0,
+#   T_th = 1048356000/0.425,
+#   At_th = 0,
+#   Lt_th = 0,
+#   Lt2_th = 0,
+#   Lt3_th = 0,
+#   Lt4_th = 0,
+#   Lt5_th = 0,
+#   
+#   # Blood pools
+#   Bb_cells = 0,
+#   Cbb_cells = 0,
+#   Tb_cells = 0,
+#   Atb_cells = 0,
+#   Ltb_cells = 0,
+#   Ctb_cells = 0,
+#   
+#   # Feather follicle & tumor
+#   f = 400000,
+#   If = 0,
+#   Z_sp = 0,
+#   Z_th = 0,
+#   Z_bu = 0       #### I feel like this is wrong
+#   
+# ) 
+
+######## trying to make pop more realistic###########
 initial_values <- c(
   # Spleen
-  B_cells = 130432500/0.125,
+  B_cells = 2.10e8,
   Cb = 0,
   Ct = 0,
-  T_cells = 113602500/0.125,
+  T_cells = 3.84e8,
   At = 0,
   Lt = 0,
   Lt2 = 0,
@@ -142,10 +199,10 @@ initial_values <- c(
   Lt5 = 0,
   
   # Bursa
-  B_bu = 954995000/0.325,
+  B_bu = 1.05e9,
   Cb_bu = 0,
   Ct_bu = 0,
-  T_bu = 7682750/0.325,
+  T_bu = 2.18e7,
   At_bu = 0,
   Lt_bu = 0,
   Lt2_bu = 0,
@@ -154,10 +211,10 @@ initial_values <- c(
   Lt5_bu = 0,
   
   # Thymus
-  B_th = 3098250/0.425,
+  B_th = 3.02e6,
   Cb_th = 0,
   Ct_th = 0,
-  T_th = 1048356000/0.425,
+  T_th = 2.73e8,
   At_th = 0,
   Lt_th = 0,
   Lt2_th = 0,
@@ -181,6 +238,7 @@ initial_values <- c(
   Z_bu = 0       #### I feel like this is wrong
   
 )
+
 
 time_values <- seq(0, 1080, by = 1) # hours 
 #infection time from data 
@@ -206,16 +264,15 @@ pp38_Thymus <-  pp38_dat %>% filter(Organ == "thymus" ) %>% select("time","mean.
 
 #getting % CYTOLYTICALLY infected from model - SPLEEN (filtering by spleen via initial value name )
 infprob <- results %>% select(B_cells, Cb, Ct, T_cells, At,Lt, Lt2, Lt3, Lt4, Lt5, time)  %>% mutate(prob_cyto = (Ct+Cb)/(B_cells+Cb+Ct+T_cells+At+Lt+Lt2+Lt3+Lt4+Lt5)) 
-# infprob_Bu <- results %>% select(T_bu, B_bu, Cb_bu, Ct_bu, T_bu, At_bu,Lt_bu, Lt2_bu, Lt3_bu, Lt4_bu, Lt5_bu, time)  %>% mutate(prob_Cb_bu = Cb_bu/(Cb_bu+B_bu), prob_Ct_bu = Ct_bu/(T_bu+Ct_bu+Lt_bu+Lt2_bu+Lt3_bu+Lt4_bu+Lt5_bu+At_bu)) 
-# infprob_Th <- results %>% select(T_th, B_th, Cb_th, Ct_th, T_th, At_th,Lt_th, Lt2_th, Lt3_th, Lt4_th, Lt5_th, time)  %>% mutate(prob_Cb_th = Cb_th/(Cb_th+B_th), prob_Ct_th = Ct_th/(T_th+Ct_th+Lt_th+Lt2_th+Lt3_th+Lt4_th+Lt5_th+At_th)) 
+infprob_Bu <- results %>% select(T_bu, B_bu, Cb_bu, Ct_bu, At_bu,Lt_bu, Lt2_bu, Lt3_bu, Lt4_bu, Lt5_bu, time)  %>% mutate(prob_Ct_bu = (Ct_bu+Cb_bu)/(T_bu+B_bu+Cb_bu+Ct_bu+At_bu+Lt_bu+Lt2_bu+Lt3_bu+Lt4_bu+Lt5_bu)) 
+infprob_Th <- results %>% select(T_th, B_th, Cb_th, Ct_th, At_th,Lt_th, Lt2_th, Lt3_th, Lt4_th, Lt5_th, time)  %>% mutate(prob_Ct_th = (Ct_th + Cb_th)/(T_th+B_th+Cb_th+Ct_th+At_th+Lt_th+Lt2_th+Lt3_th+Lt4_th+Lt5_th)) 
 
 
 
 #match MODEL time with observed PP38 data time (in hours) 
 matchedTime <- infprob %>% filter(time %in% obs_hourspp38)
-# matchedTime_Bu <- infprob_Bu %>% filter(time %in% obs_hourspp38) %>% mutate(Bprop = B_bu/(B_bu+T_bu), Tprop = T_bu/(B_bu+T_bu))  
-# matchedTime_Th <- infprob_Th %>% filter(time %in% obs_hourspp38) %>% mutate(Bprop = B_th/(B_th+T_th), Tprop = T_th/(B_th+T_th))  
-
+matchedTime_Bu <- infprob_Bu %>% filter(time %in% obs_hourspp38) 
+matchedTime_Th <- infprob_Th %>% filter(time %in% obs_hourspp38) 
 
 #added strings as factors because otherwise turns into factors for some reason 
 sir_values_1 <- as.data.frame(sir_values_1, stringsAsFactors = FALSE) 
@@ -225,7 +282,7 @@ df <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_cells",
 df2 <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_bu","Cb_bu","Ct_bu", "T_bu","At_bu","Lt5_bu","Z_bu"))   
 df3 <-  melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_th","Cb_th", "Ct_th", "T_th","At_th","Lt5_th","Z_th" )) 
 dtotal <-  sir_values_1 %>% mutate(B_total = rowSums(across(c(Bb_cells, Cbb_cells))/7500)) %>% mutate(T_total = rowSums(across(c(Tb_cells, Atb_cells, Ltb_cells, Ctb_cells))/7500)) %>% 
-  melt(id.vars = "time") %>% filter(variable %in% c("B_total", "T_total"))  
+  melt(id.vars = "time") %>% filter(variable %in% c("B_total", "T_total"))  #i divided here by 7400 because I thought there were 7.5 mL of blood in a chicken 
 #data from paper 
 PBL_B <- PBL_data %>% filter(variable_B == "infectBCells", variable_T == "InfectTcells") %>% mutate(time = time*24)
 PBL_C <- PBL_data %>% filter(variable_B == "BCellsControl", variable_T == "TCellsControl") %>% mutate(time = time*24)
@@ -238,8 +295,12 @@ p1 <-ggplot(data = df, aes(x = time/24, y = value, group = variable, colour = va
   labs(title = "WithinHost Delay - Spleen", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() + 
   xlab(label = "Time (Days)") + ylab(label = "Cell Number") 
 
-baigentdata <- ggplot(data = pp38_Spleen, aes(x = time/24, y = percentageInf)) + geom_col(fill = "steelblue") + labs( title = "Model + Baigent1996 Data") + 
-  geom_point(data = matchedTime, aes(x = time/24, y = prob_cyto), inherit.aes = FALSE)
+baigentdata <- ggplot(data = pp38_Spleen, aes(x = time/24, y = percentageInf)) + geom_point() + labs( title = "Model + Baigent1998 Data - Spleen") + 
+  geom_point(data = matchedTime, aes(x = time/24, y = prob_cyto, colour = "darkred"), inherit.aes = FALSE) + 
+  geom_line(data = matchedTime, aes(x = time/24, y = prob_cyto, colour = "darkred"), inherit.aes = FALSE) + 
+  xlab(label = "Time(days)") + ylab(label="Probabiliy of Infection") 
+
+
 
 p2 <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() +
   scale_color_manual(values = c("B_bu" = "black", "T_bu" = "red", "Cb_bu"="green", "Lt5_bu" = "purple",
@@ -248,23 +309,23 @@ p2 <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = 
   xlab(label = "Time (Days)") + ylab(label = "Cell Number")
 
 p3 <- ggplot(data = df3, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() +
-  scale_color_manual(values = c("B_th" = "black", "T_th" = "red", "Cb_th"="green", "Lt_th5" = "purple",
+  scale_color_manual(values = c("B_th" = "black", "T_th" = "red", "Cb_th"="green", "Lt5_th" = "purple",
                                 "Ct_th" = "yellow", "Z_th" = "lightblue", "At_th"="blue")) +
   labs(title = "WithinHost Delay - Thymus", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() +
   xlab(label = "Time (Days)") + ylab(label = "Cell Number")
 
 p4 <- ggplot(data = PBL_B, mapping = aes(x = time/24, y = value_B, colour = "infectBCells")) + geom_point() +
-  scale_color_manual(values = c("infectBCells" = "blue", "InfectTcells"="red", "B_total" = "blue", "T_total" = "red"))  + 
+  scale_color_manual(name = "Cell Type",values = c("infectBCells" = "blue", "InfectTcells"="red", "B_total" = "blue", "T_total" = "red"))  + 
   geom_point(data =PBL_B, mapping = aes(x = time/24, y = value_T, colour = "InfectTcells")) +
   geom_line(data = dtotal %>% filter(variable == "B_total"), aes(x = time/24, y = value, colour = "B_total")) +
   geom_line(data = dtotal %>% filter(variable == "T_total"), aes(x = time/24, y = value, colour = "T_total")) + scale_y_log10(limits = c(1000, 200000)) + 
-  theme(panel.grid = element_blank(), panel.background = element_blank(),  legend.text = element_text(size = 12),
-        legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + labs( y = "Cell Number", x = "Time (Days)")
+  theme(panel.grid = element_blank(), panel.background = element_blank(),   legend.text = element_text(size = 12),
+        legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + 
+  labs( y = "Cell Number", x = "Time (Days)", title = "WithinHost - Blood (B and T total)")
 
 
 
 (p1 | p2| p3)/p4 + plot_layout(widths = c(2,2)) 
 
 p1 
-
 
