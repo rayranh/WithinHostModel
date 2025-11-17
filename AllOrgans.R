@@ -84,33 +84,12 @@ sir_equations <- function(time, variables, parameters) {
   }) 
 } 
 
-# 
-# parameters_values <- c(
-#   M = 5.0e-14
-#   , beta =1.738284e-10 #contact rate with B cells
-#   , beta_2 = 2.801135e-16   #contact rate with T cells
-#   , nu_A = 1/10            #Activation rate of T cells by cytolytic B cells (hours)
-#   , nu_b =  1/100          #Activation rate of T cells by cytolytic T cells (hours)
-#   , nu_F =0.07              #Infection rate of follicular cells (hours)
-#   , mu_o = 2.042991e-01            #rate of circulation of any B cell lineage into the blood
-#   , mu_p = 3.593120e-01          #rate of circulation to lymphoid organs
-#   , mu_t = 1.988200e-01           #rate of circulation of any T cell lineage into the blood
-#   , alpha = 1/200            #death rate of cytolytic B cells (every 33 hours)
-#   , alpha_2 = 1/200          #death rate of cytolytic T cells (every 48 hours)
-#   , alpha_B = 0
-#   , theta = 0.8            #population of activated T cells
-#   , g1 =10                #incoming B cells (every 15 hours)
-#   , g2 =1
-#   , h1 = 10                #incoming T cells / determined no incoming T cells
-#   , h2 = 1
-#   , lambda = 0.005 #adding delay, how long latent cell 'exposed'
-#   , epsilon = 0.5
-# )
+
 
 parameters_values <- c(
-  M = 1.038840e-3
-  , beta = 1.033976e-25  #contact rate with B cells
-  , beta_2 = 6.517599e-11  #contact rate with T cells
+  M = 1.038840e-7
+  , beta = 3.045612e-13  #contact rate with B cells
+  , beta_2 = 2.463074e-02  #contact rate with T cells
   , nu_A = 1/5             #Activation rate of T cells by cytolytic B cells (hours)
   , nu_b = 1/5          #Activation rate of T cells by cytolytic T cells (hours)
   , nu_F =0.07              #Infection rate of follicular cells (hours)
@@ -129,59 +108,7 @@ parameters_values <- c(
   , epsilon = 0.5
 )
 
-# initial_values <- c(
-#   # Spleen
-#   B_cells = 130432500/0.125,
-#   Cb = 0,
-#   Ct = 0,
-#   T_cells = 113602500/0.125,
-#   At = 0,
-#   Lt = 0,
-#   Lt2 = 0,
-#   Lt3 = 0,
-#   Lt4 = 0,
-#   Lt5 = 0,
-#   
-#   # Bursa
-#   B_bu = 954995000/0.325,
-#   Cb_bu = 0,
-#   Ct_bu = 0,
-#   T_bu = 7682750/0.325,
-#   At_bu = 0,
-#   Lt_bu = 0,
-#   Lt2_bu = 0,
-#   Lt3_bu = 0,
-#   Lt4_bu = 0,
-#   Lt5_bu = 0,
-#   
-#   # Thymus
-#   B_th = 3098250/0.425,
-#   Cb_th = 0,
-#   Ct_th = 0,
-#   T_th = 1048356000/0.425,
-#   At_th = 0,
-#   Lt_th = 0,
-#   Lt2_th = 0,
-#   Lt3_th = 0,
-#   Lt4_th = 0,
-#   Lt5_th = 0,
-#   
-#   # Blood pools
-#   Bb_cells = 0,
-#   Cbb_cells = 0,
-#   Tb_cells = 0,
-#   Atb_cells = 0,
-#   Ltb_cells = 0,
-#   Ctb_cells = 0,
-#   
-#   # Feather follicle & tumor
-#   f = 400000,
-#   If = 0,
-#   Z_sp = 0,
-#   Z_th = 0,
-#   Z_bu = 0       #### I feel like this is wrong
-#   
-# ) 
+
 
 ######## trying to make pop more realistic###########
 initial_values <- c(
@@ -254,7 +181,7 @@ sir_values_1 <- ode(
 )  
 
 ################# Adding Baigent 1998 ########################## 
-pp38_dat <- read_xlsx("baigent1998.xlsx", sheet = 3, na = "NA")    
+pp38_dat <- read_xlsx("baigent1998.xlsx", sheet = 4, na = "NA")    
 results <- as.data.frame(sir_values_1)
 #separating pp38 into organs 
 pp38_Spleen <- pp38_dat %>% filter(Organ == "spleen" ) %>% select("time","mean.pp38") %>% mutate(percentageInf = mean.pp38/40000)
@@ -280,7 +207,8 @@ sir_values_1 <- as.data.frame(sir_values_1, stringsAsFactors = FALSE)
 #turning into long dataframe 
 df <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_cells","Cb","Ct","T_cells","At","Lt5", "Z_sp"))  
 df2 <- melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_bu","Cb_bu","Ct_bu", "T_bu","At_bu","Lt5_bu","Z_bu"))   
-df3 <-  melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_th","Cb_th", "Ct_th", "T_th","At_th","Lt5_th","Z_th" )) 
+df3 <-  melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("B_th","Cb_th", "Ct_th", "T_th","At_th","Lt5_th","Z_th" ))  
+df4 <-  melt(sir_values_1, id.vars = "time") %>% filter(variable %in% c("f", "If")) 
 dtotal <-  sir_values_1 %>% mutate(B_total = rowSums(across(c(Bb_cells, Cbb_cells))/76,000)) %>% mutate(T_total = rowSums(across(c(Tb_cells, Atb_cells, Ltb_cells, Ctb_cells))/76,000)) %>% # per mm^3 
   melt(id.vars = "time") %>% filter(variable %in% c("B_total", "T_total"))  #i divided here by 7400 because I thought there were 7.5 mL of blood in a chicken 
 #data from paper 
@@ -335,7 +263,12 @@ p4 <- ggplot(data = PBL_B, mapping = aes(x = time/24, y = value_B, colour = "inf
   geom_line(data = dtotal %>% filter(variable == "T_total"), aes(x = time/24, y = value, colour = "T_total")) + scale_y_log10(limits = c(1000, 200000)) + 
   theme(panel.grid = element_blank(), panel.background = element_blank(),   legend.text = element_text(size = 12),
         legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + 
-  labs( y = "Cell Number", x = "Time (Days)", title = "WithinHost - Blood (B and T total)")
+  labs( y = "Cell Number", x = "Time (Days)", title = "WithinHost - Blood (B and T total)") 
+
+p5 <- ggplot(data = df4, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() +
+  scale_color_manual(values = c("f"="black", "If" = "pink")) +
+  labs(title = "WithinHost - Feather Follicles", color = "Cell Type") + theme(legend.position = "right") + theme_minimal() +
+  xlab(label = "Time (Days)") + ylab(label = "Feathers") 
 
 
 
