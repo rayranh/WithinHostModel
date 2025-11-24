@@ -1,12 +1,15 @@
+### NOTE: 9/14/2025 used this model for presentation for collaborators to illustrate adding delay to model improves fit ### 
+
+
 rm(list = ls())
 library(deSolve)  
 library(reshape2) 
 library(ggplot2)
-
+library(dplyr)
 sir_equations <- function(time, variables, parameters) {
-  with(as.list(c(variables, parameters)), {
+  with(as.list(c(variables, parameters)), { #turning initial values and parms into vectors and then list and then applying to below equations 
     dB <- -M*B_cells - beta*Cb*B_cells - beta_2*Ct*B_cells + (g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct 
-    dCb <- M*B_cells + beta*Cb*B_cells + beta_2*Ct*B_cells - alpha*Cb 
+    dCb <- M*B_cells +beta*Cb*B_cells + beta_2*Ct*B_cells - alpha*Cb 
     dT <- -M*T_cells - nu_A*Cb*T_cells - nu_b*Ct*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
     dAt <- M*T_cells + nu_A*Cb*T_cells + nu_b*Ct*T_cells - beta_2*Ct*At - beta*Cb*At  # beta = rate of activated T cells by Ct and Cb cells 
    # have to develop LT first 
@@ -23,30 +26,31 @@ sir_equations <- function(time, variables, parameters) {
     return(list(c(dB, dCb, dT, dAt,dLt,dLt2, dLt3,dLt4, dLt5, dCt, dZ, df,dIf)))
   }) 
 }
-
-#blah blah adding someing 
+#get rid of macrophage and infect T cells and B cells population - could also have macrophages decay over time 
+#blah blah adding someing  
+# get rid of macrophages and add cB 
 parameters_values <- c( 
-  M = 0.005
-  , beta = 10.819e-4                #contact rate with B cells 
-  , beta_2 = 5e-4        #contact rate with T cells 
-  , nu_A = 0.005         #Activation rate of T cells by cytolytic B cells (hours)
-  , nu_b = 0.01         #Activation rate of T cells by cytolytic T cells (hours)
-  , nu_F =0.01          #Infection rate of follicular cells (hours)
-  , mu = 0.1          #Rate of Tumor Cells (every 72 hours)
-  , alpha =  0.01           #death rate of cytolytic B cells (every 33 hours)
-  , alpha_2 = 0.010         #death rate of cytolytic T cells (every 48 hours)
-  , theta = 0.8            #population of activated T cells 
-  , g1 =  0              #incoming B cells (every 15 hours)
-  , g2 =0.001    
-  , h1 = 0                     #incoming T cells / determined no incoming T cells 
-  , h2 = 10  
-  , lambda = 0.01          #adding delay, how long latent cell 'exposed' 
+  M = 0
+  , beta = 10.819e-8                #contact rate with B cells 
+  , beta_2 = 5e-8                   #contact rate with T cells 
+  , nu_A = 0.05                     #Activation rate of T cells by cytolytic B cells (hours)
+  , nu_b = 0.001                    #Activation rate of T cells by cytolytic T cells (hours)
+  , nu_F =0.07                      #Infection rate of follicular cells (hours)
+  , mu = 0.1                        #Rate of Tumor Cells (every 72 hours)
+  , alpha =  0.01                   #death rate of cytolytic B cells (every 33 hours)
+  , alpha_2 = 0.01                  #death rate of cytolytic T cells (every 48 hours)
+  , theta = 0.8                     #population of activated T cells 
+  , g1 = 100000                     #incoming B cells (every 15 hours)
+  , g2 = 5    
+  , h1 =100000                     #incoming T cells / determined no incoming T cells 
+  , h2 = 5  
+  , lambda = 0.00035                #adding delay, how long latent cell 'exposed' 
 )
 
 initial_values <- c( 
-  B_cells = 50  
-  , Cb = 0 
-  , T_cells =50
+  B_cells = 2.4e6/3  # from three organs 
+  , Cb = 1 
+  , T_cells =1.5e6/3
   , At = 0 
   , Lt = 0 
   , Lt2 = 0 
@@ -55,7 +59,7 @@ initial_values <- c(
   , Lt5 = 0 
   , Ct = 0
   , Z = 0
-  , f =5 
+  , f = 400000 
   , If =0 
   
 ) 
@@ -63,9 +67,9 @@ initial_values <- c(
 time_values <- seq(0, 1000) # hours
 
 sir_values_1 <- ode(
-  y = initial_values,
+  y = initial_values, # variables = initial values 
   times = time_values,
-  func = sir_equations,
+  func = sir_equations, # ode is putting in the variables and initial values for me 
   parms = parameters_values 
 ) 
 
