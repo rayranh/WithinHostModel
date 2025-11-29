@@ -30,20 +30,20 @@ sir_equations <- function(time, variables, parameters) {
 # get rid of macrophages and add cB 
 parameters_values <- c( 
   M = 0
-  , beta = 7.108697e-7                 #contact rate with B cells 
-  , beta_2 = 2.239485e-7                   #contact rate with T cells 
-  , nu_A = 0.05                     #Activation rate of T cells by cytolytic B cells (hours)
-  , nu_b = 0.08                    #Activation rate of T cells by cytolytic T cells (hours)
-  , nu_F = 9.380823                      #Infection rate of follicular cells (hours)
-  , mu = 0.5                        #Rate of Tumor Cells (every 72 hours)
-  , alpha = 0.55                   #death rate of cytolytic B cells (every 33 hours)
-  , alpha_2 = 0.55                  #death rate of cytolytic T cells (every 48 hours)
+  , beta = 5.009404e+00                 #contact rate with B cells 
+  , beta_2 = 4.990216e+00                    #contact rate with T cells 
+  , nu_A = 5.216554e-02                     #Activation rate of T cells by cytolytic B cells (hours)
+  , nu_b =  8.128439e-02                    #Activation rate of T cells by cytolytic T cells (hours)
+  , nu_F = 9.381982e+00                       #Infection rate of follicular cells (hours)
+  , mu = 4.978190e-01                        #Rate of Tumor Cells (every 72 hours)
+  , alpha = 5.470969e-01                   #death rate of cytolytic B cells (every 33 hours)
+  , alpha_2 = 5.507775e-01                   #death rate of cytolytic T cells (every 48 hours)
   , theta = 0.8                     #population of activated T cells 
-  , g1 = 100                      #incoming B cells (every 15 hours)
-  , g2 = 10    
-  , h1 =100                        #incoming T cells / determined no incoming T cells 
-  , h2 = 10  
-  , lambda = 0.000055                #adding delay, how long latent cell 'exposed' 
+  , g1 = 1.000026e+02                      #incoming B cells (every 15 hours)
+  , g2 = 1.000166e+01    
+  , h1 =9.999545e+01                        #incoming T cells / determined no incoming T cells 
+  , h2 = 1.000089e+01  
+  , lambda =  1.588346e-04                #adding delay, how long latent cell 'exposed' 
 )
 
 initial_values <- c( 
@@ -90,12 +90,11 @@ ggplot(data = df, aes(x = time/24, y = value, group = variable, colour = variabl
   scale_color_manual(values = c("B_cells" = "black", "T_cells" = "red", "Cb"="green", "At" = "blue", "Lt5" = "purple", 
                                 "Ct" = "yellow", "Z" = "lightblue")) + 
   labs(title = "WithinHost Delay", color = "Cell Type") + theme(legend.position = "right") + 
-  theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number")  
+  theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number") + xlim(0,3)
 
 FFE_plot <- ggplot(data = df_feathers_only, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
   scale_color_manual(values = c( "If" = "pink")) + 
-  geom_point(data = baigent2016, aes(x = time, y = mean_genomes), inherit.aes = FALSE, color = "red") + 
-  labs(title = "WithinHost Delay", color = "Cell Type")  + xlab(label = "Time (Days)") + 
-  ylab(label = "Cell Number")  +  scale_y_log10(limits = c(0.01, 10000000)) + 
-  theme(panel.grid = element_blank(), panel.background = element_blank(),   legend.text = element_text(size = 12),
-        legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + labs( y = "Cell Number", x = "Time (Days)", title = "WithinHost - Blood (B and T total)") 
+  geom_point(data = baigent2016, aes(x = time, y = mean_genomes), inherit.aes = FALSE, color = "red") + scale_y_log10(limits = c(0.01, 10000000)) + 
+  theme(panel.grid = element_blank(), panel.background = element_blank(), legend.text = element_text(size = 12),
+        legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + 
+  labs( y = "Mean MDV Genomes", x = "Time (Days)", title = "Challenged: RB1B only") 
