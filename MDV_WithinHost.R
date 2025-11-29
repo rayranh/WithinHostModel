@@ -90,7 +90,7 @@ ggplot(data = df, aes(x = time/24, y = value, group = variable, colour = variabl
   scale_color_manual(values = c("B_cells" = "black", "T_cells" = "red", "Cb"="green", "At" = "blue", "Lt5" = "purple", 
                                 "Ct" = "yellow", "Z" = "lightblue")) + 
   labs(title = "WithinHost Delay", color = "Cell Type") + theme(legend.position = "right") + 
-  theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number") + xlim(0,3)
+  theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number") + xlim(0,2)
 
 FFE_plot <- ggplot(data = df_feathers_only, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
   scale_color_manual(values = c( "If" = "pink")) + 
