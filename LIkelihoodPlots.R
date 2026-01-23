@@ -1,4 +1,5 @@
-###plotting the top 10 best likelihood scores in ggplot from csv file ### 
+###plotting the top 10 best likelihood scores in ggplot from csv file ###  
+### Make sure same starting initial conditions ### 
 
 #rm(list = ls())
 library(deSolve)  
@@ -44,10 +45,13 @@ parameter_vector <- function(dat,i) {
 } 
 
 creating_plots <- function(listofdf, i) { 
+  ####################################
+  ## Did you put LT in denominator? ## 
+  ###################################
   
   #take out a dataframe from each list and plot in ggplot/ using pivot longer because melt is old 
   df <- listofdf[[i]] # kept cytolytic infection  
-  df_for_40000 <- df %>% mutate(cytolytic_scale_40000 = ((Cb+Ct)/(B_cells+Cb+Ct+Lt+Lt2+Lt3+Lt4+Lt5+T_cells+At))* 40000) # for every 40000 cells in my model how many infected 
+  df_for_40000 <- df %>% mutate(cytolytic_scale_40000 = ((Cb+Ct)/(B_cells+Cb+Ct+T_cells+At))* 40000) # for every 40000 cells in my model how many infected 
   df_for_ffe <- df %>% select(time,If)
   
   #plotting cytolytic data 
@@ -99,7 +103,7 @@ initial_values <- c(
   , Lt3 = 0  
   , Lt4 = 0  
   , Lt5 = 0 
-  , Ct = 1
+  , Ct = 0
   , Z = 0
   , f = 400000 
   , If =0 
