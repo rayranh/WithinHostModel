@@ -28,24 +28,24 @@ sir_equations <- function(time, variables, parameters) {
 #get rid of macrophage and infect T cells and B cells population - could also have macrophages decay over time 
 #blah blah adding someing  
 # get rid of macrophages and add cB  
-
 parameters_values <- c( 
   M = 0
-  , beta = 200.35992409                #contact rate with B cells 
-  , beta_2 = 652.58680911                   #contact rate with T cells 
-  , nu_a =  187.27497065                   #Activation rate of T cells by cytolytic B cells (hours)
-  , nu_b = 96.22533310                  #Activation rate of T cells by cytolytic T cells (hours)
-  , nu_f = 165.12544202                       #Infection rate of follicular cells (hours)
-  , mu =   0.09877134                          #Rate of Tumor Cells (every 72 hours)
-  , alpha = 3.17634058                   #death rate of cytolytic B cells (every 33 hours)
-  , alpha_2 = 109.97329424                #death rate of cytolytic T cells (every 48 hours)
+  , beta = 36.24996                #contact rate with B cells 
+  , beta_2 = 13.60013                  #contact rate with T cells 
+  , nu_a = 4.668718e-01                     #Activation rate of T cells by cytolytic B cells (hours)
+  , nu_b = 4.467098e-01                   #Activation rate of T cells by cytolytic T cells (hours)
+  , nu_f = 7.411111                       #Infection rate of follicular cells (hours)
+  , mu = 3.914233                        #Rate of Tumor Cells (every 72 hours)
+  , alpha =  3.32623                  #death rate of cytolytic B cells (every 33 hours)
+  , alpha_2 = 2.495253                 #death rate of cytolytic T cells (every 48 hours)
   , theta = 0.8                     #population of activated T cells 
-  , g1 =  978.93769039                     #incoming B cells (every 15 hours)
-  , g2 =  304.45599373  
-  , h1 =  1127.03996984                    #incoming T cells / determined no incoming T cells 
-  , h2 =  425.44122040 
-  , lambda =  0.18200140              #adding delay, how long latent cell 'exposed' 
+  , g1 = 110.0099                 #incoming B cells (every 15 hours)
+  , g2 = 136.0988
+  , h1 = 80.72879                  #incoming T cells / determined no incoming T cells 
+  , h2 =8.330738
+  , lambda = 0.0001260828                 #adding delay, how long latent cell 'exposed' 
 )
+
 initial_values <- c( 
   B_cells = 2.4e6/3  # from three organs 2.4e6/3 
   , Cb = 1 
@@ -63,6 +63,7 @@ initial_values <- c(
   
 ) 
 
+
 time_values <- seq(0, 1000) # hours  
 
 
@@ -78,13 +79,13 @@ sir_values_1 <- ode(
 sir_values_1 <- as.data.frame(sir_values_1, stringsAsFactors = FALSE)  
 
 
-#getting total B and T cell proportions 
+#scaling cytolytic infection 
 sir_values_total <- sir_values_1 %>% mutate(total_lymphocyte = B_cells + T_cells + At + Cb + Ct , 
                                             model_cells_inf = ((Cb+Ct)/total_lymphocyte)*40000) %>% arrange(time)
 
 #long for ggplot  
 df <- melt(sir_values_1, id.vars = "time") %>% filter(!variable %in% c("Lt", "Lt2", "Lt4", "Lt3", "f", "If"))   
-df_40000_cells <- melt(sir_values_total, id.vars = "time") %>% filter(variable %in% c("model_cells_inf"), time %in% c(24,48,72,96,120,144,192,720))   
+df_40000_cells <- melt(sir_values_total, id.vars = "time") %>% filter(variable %in% c("model_cells_inf"))   
 
 
 ### DATA FOR PLOT ### 
@@ -108,13 +109,13 @@ everything <- ggplot(data = df, aes(x = time/24, y = value, group = variable, co
                                 "Ct" = "yellow", "Z" = "lightblue")) + 
   labs(title = "WithinHost Delay", color = "Cell Type") + theme(legend.position = "right") + 
   theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number") + 
-  geom_point(data = baigent1998_cyto, aes(x = time/24, y = total_pp38), inherit.aes = FALSE, color = "red") 
+  geom_point(data = baigent1998_cyto, aes(x = time/24, y = mean_pp38), inherit.aes = FALSE, color = "red") + ylim(0,100)
 
 ggplot(data = df_40000_cells, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
   scale_color_manual(values = c("model_cells_inf" = "green")) + 
   labs(title = "WithinHost Delay", color = "Cell Type") + theme(legend.position = "right") + 
   theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number") + 
-  geom_point(data = baigent1998_cyto, aes(x = time/24, y = total_pp38), inherit.aes = FALSE, color = "red") 
+  geom_point(data = baigent1998_cyto, aes(x = time/24, y = mean_pp38), inherit.aes = FALSE, color = "red") 
 
 ffe <- ggplot(data = df_feathers_only, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() + 
   scale_color_manual(values = c( "If" = "pink")) + 
