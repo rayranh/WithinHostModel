@@ -9,7 +9,8 @@ library(ggplot2)
 library(writexl) 
 library(readxl)  
 library(purrr)  
-library(GGally) 
+
+
 
 
 ## SIR MODEL ## 
@@ -57,7 +58,7 @@ Likelihood <- function(params){
       prob_Cyto = (Cb + Ct) / (B_cells + Cb + Ct + T_cells + At) # getting rid of Lt because Lt is not even present at this time point
     ) %>% filter(time %in% obs_hourspp38) 
   
-  # baigent2016 times are in days; matched_time is hours
+  # baigent2016 times are in days; matched_time is hours 
   ffe_dat <- baigent2016 %>%
     transmute(time = time * 24, mean_genomes)
   
@@ -115,8 +116,8 @@ parameters_values <- c(
   , beta_2 = 8.532282e-07                  #contact rate with T cells 
   , nu_a = 4.668718e-01                     #Activation rate of T cells by cytolytic B cells (hours)
   , nu_b = 4.467098e-01                   #Activation rate of T cells by cytolytic T cells (hours)
-  , nu_f = 6.033255e-02                      #Infection rate of follicular cells (hours)
-  , mu = 7.165224e-01                        #Rate of Tumor Cells (every 72 hours)
+  , nu_f = 0.008                     #Infection rate of follicular cells (hours)
+  , mu = 0.02                        #Rate of Tumor Cells (every 72 hours)
   , alpha = 0.0104                   #death rate of cytolytic B cells (every 33 hours)
   , alpha_2 = 0.0104                 #death rate of cytolytic T cells (every 48 hours)
   , theta = 0.8                     #population of activated T cells 
@@ -209,7 +210,7 @@ optim_for_alpha <- function(){
 
 
 #how many random parameter sets I want 
-n_per_alpha <-5
+n_per_alpha <-50
 
 
 
@@ -222,7 +223,7 @@ final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha())
 #          h1 = abs(h1), h2 = abs(h2)) %>% select(-X, -Converged) %>% filter(Likely < 500)
 
 
-write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_3.csv")
+write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_with_LT.csv")
 
 # plot(log10(data))
 # ggpairs(data) 
