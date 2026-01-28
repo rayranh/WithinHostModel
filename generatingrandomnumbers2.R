@@ -16,7 +16,7 @@ library(purrr)
 ## SIR MODEL ## 
 sir_equations <- function(time, variables, parameters) {
   with(as.list(c(variables, parameters)), { #turning initial values and parms into vectors and then list and then applying to below equations // include death of B cells + host response death apoptosis? 
-    dB <-  - beta*Cb*B_cells - beta_2*Ct*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
+    dB <-  -beta*Cb*B_cells - beta_2*Ct*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
     dBr <- (1-Pb)*(g1*(Cb+Ct)/(g2+(Cb+Ct)))
     dCb <- beta*Cb*B_cells + beta_2*Ct*B_cells - alpha*Cb 
     dT <- -nu_a*Cb*T_cells - nu_b*Ct*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
@@ -55,7 +55,7 @@ Likelihood <- function(params){
   infprob <- results %>% 
     dplyr::select(B_cells, Cb, Ct, T_cells, At, Lt, Lt2, Lt3, Lt4, Lt5, time) %>% 
     mutate(
-      prob_Cyto = (Cb + Ct) / (B_cells + Cb + Ct + T_cells + At) # getting rid of Lt because Lt is not even present at this time point
+      prob_Cyto = (Cb + Ct) / (B_cells + Cb + Ct + T_cells + At + Br) # getting rid of Lt because Lt is not even present at this time point
     ) %>% filter(time %in% obs_hourspp38) 
   
   # baigent2016 times are in days; matched_time is hours 
@@ -231,8 +231,4 @@ final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha())
 
 write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_with_LT.csv") 
 
-#, append = TRUE, sep = "", col.names = FALSE 
-
-# plot(log10(data))
-# ggpairs(data) 
 
