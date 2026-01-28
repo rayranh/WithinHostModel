@@ -65,7 +65,7 @@ creating_plots <- function(listofdf, i) {
     labs(title = "WithinHost Delay", color = "Cell Type")  + xlab(label = "Time (Days)") + 
     ylab(label = "Cell Number")  +  scale_y_log10(limits = c(0.01, 10000000)) + 
     theme(panel.grid = element_blank(), panel.background = element_blank(),   legend.text = element_text(size = 12),
-          legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + labs( y = "Cell Number", x = "Time (Days)", title = "WithinHost - Blood (B and T total)") 
+          legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + labs( y = "Cell Number", x = "Time (Days)", title = "Infected Feather Follicle Epithelium") 
   
   print(cytolytic_plot) 
   print(FFE_plot)
@@ -116,7 +116,7 @@ time_values <- seq(0, 1000) # hours
 ### DATA FOR PLOT ### 
 baigent2016 <- read_xlsx("/Users/rayanhg/Downloads/baigent2016.xlsx", 2 ) 
 baigent1998 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent1998.xlsx", 3 )    
-optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_2.csv") %>% 
+optim_data <- read.csv("Random_parameter_exploration_with_LT.csv") %>% 
   filter(Converged == 0) %>% slice_min(Likely, n = 10) %>% select(!c(Likely, Converged, X)) 
 
 baigent1998_summary <- baigent1998 %>% 
@@ -134,7 +134,7 @@ list_of_df <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   parameter_vector(dat = optim_data, i = i)
   }) 
 
-pdf("model_plots_csv_2.pdf", width = 7, height = 5)
+pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/RoarWithoutLtDenom/Random_parameter_exploration_with_LT.pdf", width = 7, height = 5)
 
 generating_plots <-  purrr::map(seq_len(nrow(optim_data)), function(i) { 
   creating_plots(listofdf = list_of_df, i = i)
