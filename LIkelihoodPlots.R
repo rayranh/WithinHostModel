@@ -52,13 +52,24 @@ creating_plots <- function(listofdf, i) {
   ###################################
   
   #take out a dataframe from each list and plot in ggplot/ using pivot longer because melt is old 
-  df <- listofdf[[i]] # kept cytolytic infection  
-  df_for_40000 <- df %>% mutate(cytolytic_scale_40000 = ((Cb+Ct)/(B_cells+Cb+Ct+T_cells+At))* 40000) # for every 40000 cells in my model how many infected 
-  df_for_ffe <- df %>% select(time,If)
+  df <- listofdf[[i]] # kept cytolytic infection    
   
+  #turning df into long df 
+  df2 <- pivot_longer(df, cols = -time, names_to = "variable", values_to = "value")
+  df_for_40000 <- df %>% mutate(cytolytic_scale_40000 = ((Cb+Ct)/(B_cells+Cb+Ct+T_cells+At))* 40000) # for every 40000 cells in my model how many infected 
+  df_for_ffe <- df %>% select(time,If)  
+  
+  # #plot for all components 
+  everything <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() +
+    scale_color_manual(values = c("B_cells" = "black", "T_cells" = "red", "Cb"="green", "At" = "blue", "Lt5" = "purple",
+                                  "Ct" = "yellow", "Z" = "lightblue", "Br" = "orange", "f" = "magenta", "If" = "pink")) +
+    labs(title = "WithinHost Delay", color = "Cell Type") + theme(legend.position = "right") +
+    theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number") +
+    geom_point(data = baigent1998, aes(x = time/24, y = mean.pp38), inherit.aes = FALSE, color = "red") 
+
   #plotting cytolytic data 
   cytolytic_plot <- ggplot(df_for_40000, aes(x = time/24, y = cytolytic_scale_40000)) + 
-    geom_line() + geom_point(data = baigent1998,aes(x = time / 24, y = mean.pp38),color = "red",linewidth = 1, inherit.aes = FALSE) +  
+    geom_line(color = "#A6D854") + geom_point(data = baigent1998,aes(x = time / 24, y = mean.pp38),color = "red",linewidth = 1, inherit.aes = FALSE) +  
     labs(x = "Time (days)", y = "pp38+ cells (out of 40,000)",title = "Model vs observed pp38+ cells (average per bird)") + theme_minimal() + ylim(0,600)
   
   #plot for infected feather follicles  
@@ -69,6 +80,7 @@ creating_plots <- function(listofdf, i) {
     theme(panel.grid = element_blank(), panel.background = element_blank(),   legend.text = element_text(size = 12),
           legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + labs( y = "Cell Number", x = "Time (Days)", title = "Infected Feather Follicle Epithelium") 
   
+  print(everything)
   print(cytolytic_plot) 
   print(FFE_plot)
 }
@@ -132,7 +144,7 @@ list_of_df <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   parameter_vector(dat = optim_data, i = i)
   }) 
 
-pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/RoarWithoutLtDenom/Random_parameter_exploration_with_LT.pdf", width = 7, height = 5)
+pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/RoarWithoutLtDenom/Random_parameter_exploration_with_LT_test.pdf", width = 7, height = 5)
 
 generating_plots <-  purrr::map(seq_len(nrow(optim_data)), function(i) { 
   creating_plots(listofdf = list_of_df, i = i)
