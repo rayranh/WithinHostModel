@@ -37,7 +37,8 @@ sir_equations <- function(time, variables, parameters) {
 #### LIKELIHOOD FUNCTION #### 
 
 Likelihood <- function(params){   
-  pars <- parameters_values
+  pars <- parameters_values 
+  
   
   pars[names(params)] <- abs(params)   
   
@@ -53,7 +54,7 @@ Likelihood <- function(params){
   
   # percent cytolytically infected in model
   infprob <- results %>% 
-    dplyr::select(B_cells, Cb, Ct, T_cells, At, Lt, Lt2, Lt3, Lt4, Lt5, time) %>% 
+    dplyr::select(B_cells, Cb,Br, Ct, T_cells, At, Lt, Lt2, Lt3, Lt4, Lt5, time) %>% 
     mutate(
       prob_Cyto = (Cb + Ct) / (B_cells + Cb + Ct + T_cells + At + Br) # getting rid of Lt because Lt is not even present at this time point
     ) %>% filter(time %in% obs_hourspp38) 
@@ -109,14 +110,14 @@ parameter_intervals <- list( beta_2 = c(1e-08,1e-2),
                              mu = c(0.01388889, 0.05), 
                              nu_f = c(0.006, 0.01), 
                              lambda = c(0.015, 0.042), 
-                             Pb = c(0.0001, 0.01)) 
+                             Pb = c(0.0002, 0.01116)) #taken from baigent data 
 
 ## PARAMETERS AND INITIAL VALUES ## 
 
 ## PARAMETERS AND INITIAL VALUES ## 
 parameters_values <- c( 
   beta =  6.951463e-07                  #contact rate with B cells  
-  , Pb = 0.005
+  , Pb = 0.005 
   , beta_2 = 8.532282e-07                  #contact rate with T cells 
   , nu_a = 4.668718e-01                     #Activation rate of T cells by cytolytic B cells (hours)
   , nu_b = 4.467098e-01                   #Activation rate of T cells by cytolytic T cells (hours)
@@ -134,9 +135,9 @@ parameters_values <- c(
 
 
 initial_values <- c( 
-  B_cells = 2.4e6/3  # from three organs 2.4e6/3 
+  B_cells = 2.4e6/3*(Pb) # from three organs 2.4e6/3 
   , Cb = 1  
-  , Br = 0 
+  , Br = 2.4e6/3*(1-Pb) #add the percent here 
   , T_cells = 1.5e6/3 # from three organs 1.5e6/3 
   , At = 0 
   , Lt = 0 
@@ -229,6 +230,6 @@ final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha())
 #          h1 = abs(h1), h2 = abs(h2)) %>% select(-X, -Converged) %>% filter(Likely < 500)
 
 
-write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_with_LT.csv") 
+write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_adding_refractoryBcells.csv") 
 
 
