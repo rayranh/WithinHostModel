@@ -38,13 +38,16 @@ sir_equations <- function(time, variables, parameters) {
 
 Likelihood <- function(params){   
   pars <- parameters_values 
+  init <- initial_values 
+  B0 <-  2.4e6/3
   
-  
-  pars[names(params)] <- abs(params)   
+  pars[names(params)] <- abs(params)  
+  init["B_cells"] <- B0*pars["Pb"] 
+  init["Br"] <- B0* (1 - pars["Pb"])
   
   # run model
   results <- as.data.frame(
-    ode(y = initial_values, 
+    ode(y = init, 
         times = time_values, 
         func = sir_equations, 
         parms = pars)
@@ -56,7 +59,7 @@ Likelihood <- function(params){
   infprob <- results %>% 
     dplyr::select(B_cells, Cb,Br, Ct, T_cells, At, Lt, Lt2, Lt3, Lt4, Lt5, time) %>% 
     mutate(
-      prob_Cyto = (Cb + Ct) / (B_cells + Cb + Ct + T_cells + At + Br) # getting rid of Lt because Lt is not even present at this time point
+      prob_Cyto = (Cb + Ct) / (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + LT4 + Lt5) # getting rid of Lt because Lt is not even present at this time point
     ) %>% filter(time %in% obs_hourspp38) 
   
   # baigent2016 times are in days; matched_time is hours 
@@ -135,10 +138,10 @@ parameters_values <- c(
 
 
 initial_values <- c( 
-  B_cells = 2.4e6/3*(Pb) # from three organs 2.4e6/3 
+  B_cells = 2.4e6/3    # from three organs 2.4e6/3 
   , Cb = 1  
-  , Br = 2.4e6/3*(1-Pb) #add the percent here 
-  , T_cells = 1.5e6/3 # from three organs 1.5e6/3 
+  , Br = 2.4e6/3         #add the percent here 
+  , T_cells = 1.5e6/3  # from three organs 1.5e6/3 
   , At = 0 
   , Lt = 0 
   , Lt2 = 0 
@@ -223,13 +226,7 @@ n_per_alpha <-50
 
 final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha())
 
-#adding my alpha values to df 
 
-# data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_1_NA.RM.csv") %>% filter(Converged != 10) %>%
-#   mutate(alpha = abs(alpha), Likely = abs(Likely), beta = abs(beta), beta_2 = abs(beta_2), alpha_2 = abs(alpha_2), g1 = abs(g1), g2 = abs(g2),
-#          h1 = abs(h1), h2 = abs(h2)) %>% select(-X, -Converged) %>% filter(Likely < 500)
-
-
-write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_adding_refractoryBcells.csv") 
+write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_adding_refractoryBcells_WITHLt.csv") 
 
 
