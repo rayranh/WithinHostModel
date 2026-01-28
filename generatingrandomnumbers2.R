@@ -16,10 +16,11 @@ library(purrr)
 ## SIR MODEL ## 
 sir_equations <- function(time, variables, parameters) {
   with(as.list(c(variables, parameters)), { #turning initial values and parms into vectors and then list and then applying to below equations // include death of B cells + host response death apoptosis? 
-    dB <- -M*B_cells - beta*Cb*B_cells - beta_2*Ct*B_cells + (g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct 
-    dCb <- M*B_cells +beta*Cb*B_cells + beta_2*Ct*B_cells - alpha*Cb 
-    dT <- -M*T_cells - nu_a*Cb*T_cells - nu_b*Ct*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
-    dAt <- M*T_cells + nu_a*Cb*T_cells + nu_b*Ct*T_cells - beta_2*Ct*At - beta*Cb*At  # beta = rate of activated T cells by Ct and Cb cells    
+    dB <-  - beta*Cb*B_cells - beta_2*Ct*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
+    dBr <- (1-Pb)*(g1*(Cb+Ct)/(g2+(Cb+Ct)))
+    dCb <- beta*Cb*B_cells + beta_2*Ct*B_cells - alpha*Cb 
+    dT <- -nu_a*Cb*T_cells - nu_b*Ct*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
+    dAt <- nu_a*Cb*T_cells + nu_b*Ct*T_cells - beta_2*Ct*At - beta*Cb*At  # beta = rate of activated T cells by Ct and Cb cells    
     dLt <- theta*(beta_2*Ct*At + beta*Cb*At)  - lambda*Lt 
     dLt2 <- lambda*Lt - lambda*Lt2 
     dLt3 <- lambda*Lt2 - lambda*Lt3 
@@ -29,10 +30,9 @@ sir_equations <- function(time, variables, parameters) {
     dZ <- mu*Lt5
     df <- -nu_f*Lt5*f
     dIf <- nu_f*Lt5*f
-    return(list(c(dB, dCb, dT, dAt,dLt,dLt2, dLt3,dLt4, dLt5, dCt, dZ, df,dIf)))
+    return(list(c(dB, dCb,dBr, dT, dAt,dLt,dLt2, dLt3,dLt4, dLt5, dCt, dZ, df,dIf)))
   }) 
 }  
-
 
 #### LIKELIHOOD FUNCTION #### 
 
@@ -97,6 +97,7 @@ Likelihood <- function(params){
 
 
 #create intervals for numbers 
+
 parameter_intervals <- list( beta_2 = c(1e-08,1e-2), 
                              beta = c(1e-08, 1e-2), 
                              alpha_2 = c(0.0104, 0.041), 
@@ -107,12 +108,15 @@ parameter_intervals <- list( beta_2 = c(1e-08,1e-2),
                              alpha = c(0.0104,0.041), 
                              mu = c(0.01388889, 0.05), 
                              nu_f = c(0.006, 0.01), 
-                             lambda = c(0.015, 0.042))  
+                             lambda = c(0.015, 0.042), 
+                             Pb = c(0.0001, 0.01)) 
+
+## PARAMETERS AND INITIAL VALUES ## 
 
 ## PARAMETERS AND INITIAL VALUES ## 
 parameters_values <- c( 
-  M = 0
-  , beta =  6.951463e-07                  #contact rate with B cells 
+  beta =  6.951463e-07                  #contact rate with B cells  
+  , Pb = 0.005
   , beta_2 = 8.532282e-07                  #contact rate with T cells 
   , nu_a = 4.668718e-01                     #Activation rate of T cells by cytolytic B cells (hours)
   , nu_b = 4.467098e-01                   #Activation rate of T cells by cytolytic T cells (hours)
@@ -128,9 +132,11 @@ parameters_values <- c(
   , lambda = 0.03                #adding delay, how long latent cell 'exposed' 
 )
 
+
 initial_values <- c( 
   B_cells = 2.4e6/3  # from three organs 2.4e6/3 
-  , Cb = 1 
+  , Cb = 1  
+  , Br = 0 
   , T_cells = 1.5e6/3 # from three organs 1.5e6/3 
   , At = 0 
   , Lt = 0 
@@ -144,7 +150,6 @@ initial_values <- c(
   , If =0 
   
 ) 
-
 ### TIME ### 
 
 time_values <- seq(0, 1080, by = 1)   
@@ -201,7 +206,8 @@ optim_for_alpha <- function(){
     g1       = answeroptim$par["g1"],
     g2       = answeroptim$par["g2"],
     h1       = answeroptim$par["h1"],
-    h2       = answeroptim$par["h2"],
+    h2       = answeroptim$par["h2"], 
+    Pb      = answeroptim$par["Pb"],
     Converged = answeroptim$convergence
   ) 
   
