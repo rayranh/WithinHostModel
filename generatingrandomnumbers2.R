@@ -107,7 +107,7 @@ parameter_intervals <- list( beta_2 = c(1e-08,1e-2),
                              alpha = c(0.0104,0.041), 
                              mu = c(0.01388889, 0.05), 
                              nu_f = c(0.006, 0.01), 
-                             lambda = c(15.9e-05, 15.9e-02))  
+                             lambda = c(0.015, 0.042))  
 
 ## PARAMETERS AND INITIAL VALUES ## 
 parameters_values <- c( 
@@ -125,7 +125,7 @@ parameters_values <- c(
   , g2 = 100    
   , h1 =1000                      #incoming T cells / determined no incoming T cells 
   , h2 = 100
-  , lambda = 15.975984e-05                 #adding delay, how long latent cell 'exposed' 
+  , lambda = 0.03                #adding delay, how long latent cell 'exposed' 
 )
 
 initial_values <- c( 
@@ -223,7 +223,9 @@ final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha())
 #          h1 = abs(h1), h2 = abs(h2)) %>% select(-X, -Converged) %>% filter(Likely < 500)
 
 
-write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_with_LT.csv")
+write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_with_LT.csv") 
+
+#, append = TRUE, sep = "", col.names = FALSE 
 
 # plot(log10(data))
 # ggpairs(data) 
