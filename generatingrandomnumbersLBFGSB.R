@@ -42,7 +42,8 @@ Likelihood <- function(params){
   init <- initial_values 
   B0 <-  2.4e6/3
   
-  pars[names(params)] <- params 
+  pars[names(params)] <- params  
+  pars[c("beta", "beta_2")] <- exp(params[c("beta", "beta_2")])
   init["B_cells"] <- B0*pars["Pb"] 
   init["Br"] <- B0* (1 - pars["Pb"])
   
@@ -103,8 +104,8 @@ Likelihood <- function(params){
 
 #create intervals for numbers 
 
-parameter_intervals <- list( beta_2 = c(1e-08,5e-2), 
-                             beta = c(1e-08, 5e-2), 
+parameter_intervals <- list( beta_2 = c(1e-08,1e-2), 
+                             beta = c(1e-08,1e-2), 
                              alpha_2 = c(0.0104, 0.41), 
                              g1 = c(10,1000), 
                              g2 = c(1,1000), 
@@ -199,7 +200,7 @@ optim_for_alpha <- function(){
     method = "L-BFGS-B", 
     lower = lower[names(starting_parms)], 
     upper = upper[names(starting_parms)], 
-    control = list(maxit = 5000)
+    control = list(maxit = 5000) 
   )
   
   tibble::tibble(
