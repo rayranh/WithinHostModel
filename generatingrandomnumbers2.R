@@ -41,7 +41,11 @@ Likelihood <- function(params){
   init <- initial_values 
   B0 <-  2.4e6/3
   
-  pars[names(params)] <- abs(params)  
+  pars[names(params)] <- params  
+  pars["beta"]   <- exp(params["beta"])
+  pars["beta_2"] <- exp(params["beta_2"])
+  
+  
   init["B_cells"] <- B0*pars["Pb"] 
   init["Br"] <- B0* (1 - pars["Pb"])
   
@@ -102,8 +106,8 @@ Likelihood <- function(params){
 
 #create intervals for numbers 
 
-parameter_intervals <- list( beta_2 = c(1e-08,1e-2), 
-                             beta = c(1e-08, 1e-2), 
+parameter_intervals <- list( beta_2 = log(c(1e-08,1e-2)), 
+                             beta = log(c(1e-08, 1e-2)), 
                              alpha_2 = c(0.0104, 0.041), 
                              g1 = c(10,1000), 
                              g2 = c(1,1000), 
@@ -112,7 +116,6 @@ parameter_intervals <- list( beta_2 = c(1e-08,1e-2),
                              alpha = c(0.0104,0.041), 
                              mu = c(0.01388889, 0.05), 
                              nu_f = c(0.006, 0.01), 
-                             lambda = c(0.015, 0.042), 
                              Pb = c(0.0002, 0.01116)) #taken from baigent data 
 
 ## PARAMETERS AND INITIAL VALUES ## 
@@ -127,20 +130,20 @@ parameters_values <- c(
   , nu_f = 0.008                     #Infection rate of follicular cells (hours)
   , mu = 0.02                        #Rate of Tumor Cells (every 72 hours)
   , alpha = 0.0104                   #death rate of cytolytic B cells (every 33 hours)
-  , alpha_2 = 0.0104                 #death rate of cytolytic T cells (every 48 hours)
+  , alpha_2 = 0.0104                #death rate of cytolytic T cells (every 48 hours)
   , theta = 0.8                     #population of activated T cells 
-  , g1 = 1000                     #incoming B cells (every 15 hours)
+  , g1 = 1000                       #incoming B cells (every 15 hours)
   , g2 = 100    
-  , h1 =1000                      #incoming T cells / determined no incoming T cells 
+  , h1 =1000                        #incoming T cells / determined no incoming T cells 
   , h2 = 100
-  , lambda = 0.03                #adding delay, how long latent cell 'exposed' 
+  , lambda = 0.02380952             # fixing delay rate to (1/(7*24))*4  
 )
 
 
 initial_values <- c( 
   B_cells = 2.4e6/3    # from three organs 2.4e6/3 
   , Cb = 1  
-  , Br = 2.4e6/3         #add the percent here 
+  , Br = 2.4e6/3       #same initial proportion here infected as in model (well mixed marbles ex) 
   , T_cells = 1.5e6/3  # from three organs 1.5e6/3 
   , At = 0 
   , Lt = 0 
@@ -189,23 +192,22 @@ making_a_set <- function() {
 
 optim_for_alpha <- function(){ 
   
-  starting_parms <- making_a_set() 
-  
+  starting_parms <- making_a_set()  
+
   answeroptim <- optim(
     par = starting_parms,
     fn  = Likelihood,
     method = "Nelder-Mead",
-    control = list(maxit = 5000)
+    control = list(maxit = 10000)
   )
   
   tibble::tibble(
     Likely   = answeroptim$value,
-    beta     = answeroptim$par["beta"],
-    beta_2   = answeroptim$par["beta_2"],
+    beta     = exp(answeroptim$par["beta"]),#transforming back from log 
+    beta_2   = exp(answeroptim$par["beta_2"]),#transforming back from log 
     alpha    = answeroptim$par["alpha"],
     alpha_2  = answeroptim$par["alpha_2"], 
     nu_f     = answeroptim$par["nu_f"], 
-    lambda   = answeroptim$par["lambda"],
     mu       = answeroptim$par["mu"],
     g1       = answeroptim$par["g1"],
     g2       = answeroptim$par["g2"],
@@ -220,13 +222,13 @@ optim_for_alpha <- function(){
 
 
 #how many random parameter sets I want 
-n_per_alpha <-50
+n_per_alpha <-2
 
 
 
 final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha())
 
 
-write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_adding_refractoryBcells_WITHLt.csv") 
+#write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_adding_refractoryBcells_WITHLt.csv") 
 
 
