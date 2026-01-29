@@ -42,8 +42,11 @@ Likelihood <- function(params){
   B0 <-  2.4e6/3
   
   pars[names(params)] <- params  
-  pars["beta"]   <- exp(params["beta"])
-  pars["beta_2"] <- exp(params["beta_2"])
+  pars["beta"]   <- exp(pars["beta"])
+  pars["beta_2"] <- exp(pars["beta_2"])  
+  pars["alpha"]   <- exp(pars["alpha"])
+  pars["alpha_2"] <- exp(pars["alpha_2"]) 
+  pars["Pb"] <- plogis(pars["Pb"])
   
   
   init["B_cells"] <- B0*pars["Pb"] 
@@ -108,29 +111,28 @@ Likelihood <- function(params){
 
 parameter_intervals <- list( beta_2 = log(c(1e-08,1e-2)), 
                              beta = log(c(1e-08, 1e-2)), 
-                             alpha_2 = c(0.0104, 0.041), 
+                             alpha_2 =log(c(0.0104, 0.041)), 
                              g1 = c(10,1000), 
                              g2 = c(1,1000), 
                              h1 = c(10,1000), 
                              h2 = c(1,1000), 
-                             alpha = c(0.0104,0.041), 
+                             alpha = log(c(0.0104,0.041)), 
                              mu = c(0.01388889, 0.05), 
                              nu_f = c(0.006, 0.01), 
-                             Pb = c(0.0002, 0.01116)) #taken from baigent data 
+                             Pb = qlogis(c(0.0002, 0.01116))) #taken from baigent data 
 
-## PARAMETERS AND INITIAL VALUES ## 
 
 ## PARAMETERS AND INITIAL VALUES ## 
 parameters_values <- c( 
-  beta =  6.951463e-07                  #contact rate with B cells  
-  , Pb = 0.005 
-  , beta_2 = 8.532282e-07                  #contact rate with T cells 
+  beta =  log(6.951463e-07)                  #contact rate with B cells  
+  , Pb = qlogis(0.005) 
+  , beta_2 = log(8.532282e-07)                 #contact rate with T cells 
   , nu_a = 4.668718e-01                     #Activation rate of T cells by cytolytic B cells (hours)
   , nu_b = 4.467098e-01                   #Activation rate of T cells by cytolytic T cells (hours)
   , nu_f = 0.008                     #Infection rate of follicular cells (hours)
   , mu = 0.02                        #Rate of Tumor Cells (every 72 hours)
-  , alpha = 0.0104                   #death rate of cytolytic B cells (every 33 hours)
-  , alpha_2 = 0.0104                #death rate of cytolytic T cells (every 48 hours)
+  , alpha = log(0.0104)                   #death rate of cytolytic B cells (every 33 hours)
+  , alpha_2 = log(0.0104)                #death rate of cytolytic T cells (every 48 hours)
   , theta = 0.8                     #population of activated T cells 
   , g1 = 1000                       #incoming B cells (every 15 hours)
   , g2 = 100    
@@ -198,22 +200,22 @@ optim_for_alpha <- function(){
     par = starting_parms,
     fn  = Likelihood,
     method = "Nelder-Mead",
-    control = list(maxit = 10000)
+    control = list(maxit = 20000)
   )
   
   tibble::tibble(
     Likely   = answeroptim$value,
     beta     = exp(answeroptim$par["beta"]),#transforming back from log 
     beta_2   = exp(answeroptim$par["beta_2"]),#transforming back from log 
-    alpha    = answeroptim$par["alpha"],
-    alpha_2  = answeroptim$par["alpha_2"], 
+    alpha    = exp(answeroptim$par["alpha"]),
+    alpha_2  = exp(answeroptim$par["alpha_2"]), 
     nu_f     = answeroptim$par["nu_f"], 
     mu       = answeroptim$par["mu"],
     g1       = answeroptim$par["g1"],
     g2       = answeroptim$par["g2"],
     h1       = answeroptim$par["h1"],
     h2       = answeroptim$par["h2"], 
-    Pb      = answeroptim$par["Pb"],
+    Pb      = plogis(answeroptim$par["Pb"]),
     Converged = answeroptim$convergence
   ) 
   
@@ -222,13 +224,13 @@ optim_for_alpha <- function(){
 
 
 #how many random parameter sets I want 
-n_per_alpha <-2
+n_per_alpha <-50
 
 
 
 final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha())
 
-
-#write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_adding_refractoryBcells_WITHLt.csv") 
+write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_9_26_randomnumgen_Pb_Br_WITHLT_plogis
+          .csv") 
 
 
