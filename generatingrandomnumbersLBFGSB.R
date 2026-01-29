@@ -103,18 +103,18 @@ Likelihood <- function(params){
 
 #create intervals for numbers 
 
-parameter_intervals <- list( beta_2 = c(1e-08,1e-2), 
-                             beta = c(1e-08, 1e-2), 
-                             alpha_2 = c(0.0104, 0.041), 
+parameter_intervals <- list( beta_2 = c(1e-08,5e-2), 
+                             beta = c(1e-08, 5e-2), 
+                             alpha_2 = c(0.0104, 0.41), 
                              g1 = c(10,1000), 
                              g2 = c(1,1000), 
                              h1 = c(10,1000), 
                              h2 = c(1,1000), 
-                             alpha = c(0.0104,0.041), 
+                             alpha = c(0.0104,0.41), 
                              mu = c(0.01388889, 0.05), 
                              nu_f = c(0.006, 0.01), 
                              lambda = c(0.015, 0.042), 
-                             Pb = c(0.0002, 0.01116)) #taken from baigent data 
+                             Pb = c(0.0001, 0.01116)) #taken from baigent data 
 
 
 ## PARAMETERS AND INITIAL VALUES ## 
@@ -231,6 +231,6 @@ n_per_alpha <-2
 final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha())
 
 
-write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/L_BFGS_B_RandGen.csv") 
+#write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/1.28.26L_BFGS_B_RandGen.csv") 
 
 
