@@ -11,7 +11,7 @@ library(purrr)
 
 sir_equations <- function(time, variables, parameters) {
   with(as.list(c(variables, parameters)), { #turning initial values and parms into vectors and then list and then applying to below equations // include death of B cells + host response death apoptosis? 
-    dB <-  - beta*Cb*B_cells - beta_2*Ct*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
+    dB <-  -beta*Cb*B_cells - beta_2*Ct*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
     dBr <- (1-Pb)*(g1*(Cb+Ct)/(g2+(Cb+Ct)))
     dCb <- beta*Cb*B_cells + beta_2*Ct*B_cells - alpha*Cb 
     dT <- -nu_a*Cb*T_cells - nu_b*Ct*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
@@ -32,13 +32,21 @@ sir_equations <- function(time, variables, parameters) {
 
 
 parameter_vector <- function(dat,i) { 
-  param_vector <- unlist(dat[i,]) 
+  param_vector <- unlist(dat[i,])  
+  init <- initial_values 
+  B0 <-  2.4e6/3 
+  
   pars <- parameters_values
-  pars[names(param_vector)] <- abs(param_vector)
+  pars[names(param_vector)] <- abs(param_vector) 
+  init["B_cells"] <- B0*pars["Pb"] 
+  init["Br"] <- B0*(1 - pars["Pb"])  
+  
+  
+  
   
   # run model
   results <- as.data.frame(
-    ode(y = initial_values, 
+    ode(y = init, 
         times = time_values, 
         func = sir_equations, 
         parms = pars))  
@@ -56,13 +64,14 @@ creating_plots <- function(listofdf, i) {
   
   #turning df into long df 
   df2 <- pivot_longer(df, cols = -time, names_to = "variable", values_to = "value")
-  df_for_40000 <- df %>% mutate(cytolytic_scale_40000 = ((Cb+Ct)/(B_cells+Cb+Ct+T_cells+At))* 40000) # for every 40000 cells in my model how many infected 
+  df_for_40000 <- df %>% mutate(cytolytic_scale_40000 = ((Cb+Ct)/(B_cells+Cb+Ct+T_cells+At+Br+Lt+Lt2+Lt3+Lt4+Lt5))* 40000) # for every 40000 cells in my model how many infected 
   df_for_ffe <- df %>% select(time,If)  
   
   # #plot for all components 
   everything <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() +
     scale_color_manual(values = c("B_cells" = "black", "T_cells" = "red", "Cb"="green", "At" = "blue", "Lt5" = "purple",
-                                  "Ct" = "yellow", "Z" = "lightblue", "Br" = "orange", "f" = "magenta", "If" = "pink")) +
+                                  "Ct" = "yellow", "Z" = "lightblue", "Br" = "orange", "f" = "magenta", "If" = "pink",
+                                  "Lt2" = "chartreuse", "Lt3" = "chartreuse", "Lt4" = "chartreuse")) +
     labs(title = "WithinHost Delay", color = "Cell Type") + theme(legend.position = "right") +
     theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number") +
     geom_point(data = baigent1998, aes(x = time/24, y = mean.pp38), inherit.aes = FALSE, color = "red") 
@@ -70,7 +79,7 @@ creating_plots <- function(listofdf, i) {
   #plotting cytolytic data 
   cytolytic_plot <- ggplot(df_for_40000, aes(x = time/24, y = cytolytic_scale_40000)) + 
     geom_line(color = "#A6D854") + geom_point(data = baigent1998,aes(x = time / 24, y = mean.pp38),color = "red",linewidth = 1, inherit.aes = FALSE) +  
-    labs(x = "Time (days)", y = "pp38+ cells (out of 40,000)",title = "Model vs observed pp38+ cells (average per bird)") + theme_minimal() + ylim(0,600)
+    labs(x = "Time (days)", y = "pp38+ cells (out of 40,000)",title = "Model vs observed pp38+ cells (average per bird)") + theme_minimal() + ylim(0,1000)
   
   #plot for infected feather follicles  
   FFE_plot <- ggplot(data = df_for_ffe, aes(x = time/24, y = If)) + geom_line( color = "pink") + 
@@ -135,7 +144,7 @@ time_values <- seq(0, 1080) # hours
 baigent2016 <- read_xlsx("/Users/rayanhg/Downloads/baigent2016.xlsx", 2 ) 
 baigent1998 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent1998.xlsx", 3 ) %>% 
   mutate(mean.pp38 = as.numeric(mean.pp38))    
-optim_data <- read.csv("Random_parameter_exploration_withoutLt_addingPb.csv") %>% 
+optim_data <- read.csv("Random_parameter_exploration_adding_refractoryBcells_WITHLt.csv") %>% 
   filter(Converged == 0) %>% slice_min(Likely, n = 10) %>% select(!c(Likely, Converged, X)) 
 
 
@@ -144,7 +153,7 @@ list_of_df <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   parameter_vector(dat = optim_data, i = i)
   }) 
 
-pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/RoarWithoutLtDenom/Random_parameter_exploration_with_LT_test.pdf", width = 7, height = 5)
+pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_adding_refractoryBcells_WITHLt.pdf", width = 7, height = 5)
 
 generating_plots <-  purrr::map(seq_len(nrow(optim_data)), function(i) { 
   creating_plots(listofdf = list_of_df, i = i)
