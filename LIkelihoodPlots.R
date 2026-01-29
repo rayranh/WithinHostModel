@@ -37,7 +37,7 @@ parameter_vector <- function(dat,i) {
   B0 <-  2.4e6/3 
   
   pars <- parameters_values
-  pars[names(param_vector)] <- abs(param_vector) 
+  pars[names(param_vector)] <- param_vector 
   init["B_cells"] <- B0*pars["Pb"] 
   init["Br"] <- B0*(1 - pars["Pb"])  
   
@@ -144,7 +144,8 @@ time_values <- seq(0, 1080) # hours
 baigent2016 <- read_xlsx("/Users/rayanhg/Downloads/baigent2016.xlsx", 2 ) 
 baigent1998 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent1998.xlsx", 3 ) %>% 
   mutate(mean.pp38 = as.numeric(mean.pp38))    
-optim_data <- read.csv("Random_parameter_exploration_adding_refractoryBcells_WITHLt.csv") %>% 
+optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_9_26_randomnumgen_Pb_Br_WITHLT_plogis
+          .csv") %>% 
   filter(Converged == 0) %>% slice_min(Likely, n = 10) %>% select(!c(Likely, Converged, X)) 
 
 
@@ -153,13 +154,38 @@ list_of_df <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   parameter_vector(dat = optim_data, i = i)
   }) 
 
-pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Random_parameter_exploration_adding_refractoryBcells_WITHLt.pdf", width = 7, height = 5)
+ pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_9_26_randomnumgen_Pb_Br_WITHLT_plogis.pdf", width = 7, height = 5)
 
-generating_plots <-  purrr::map(seq_len(nrow(optim_data)), function(i) { 
-  creating_plots(listofdf = list_of_df, i = i)
-}) 
+ generating_plots <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
+ creating_plots(listofdf = list_of_df, i = i)
+})
 
 dev.off()
 
-
-
+df <- list_of_df[[1]] 
+# df2 <- pivot_longer(df, cols = -time, names_to = "variable", values_to = "value") 
+# df_for_40000 <- df %>% mutate(cytolytic_scale_40000 = ((Cb+Ct)/(B_cells+Cb+Ct+T_cells+At+Br+Lt+Lt2+Lt3+Lt4+Lt5))* 40000) # for every 40000 cells in my model how many infected 
+# 
+# 
+# 
+# 
+# everything <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() +
+#   scale_color_manual(values = c("B_cells" = "black", "T_cells" = "red", "Cb"="green", "At" = "blue", "Lt5" = "purple",
+#                                 "Ct" = "yellow", "Z" = "lightblue", "Br" = "orange", "f" = "magenta", "If" = "pink",
+#                                 "Lt2" = "chartreuse", "Lt3" = "chartreuse", "Lt4" = "chartreuse")) +
+#   labs(title = "WithinHost Delay", color = "Cell Type") + theme(legend.position = "right") +
+#   theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number") +
+#   geom_point(data = baigent1998, aes(x = time/24, y = mean.pp38), inherit.aes = FALSE, color = "red")  
+# 
+# #plotting cytolytic data 
+# cytolytic_plot <- ggplot(df_for_40000, aes(x = time/24, y = cytolytic_scale_40000)) + 
+#   geom_line(color = "#A6D854") + geom_point(data = baigent1998,aes(x = time / 24, y = mean.pp38),color = "red",linewidth = 1, inherit.aes = FALSE) +  
+#   labs(x = "Time (days)", y = "pp38+ cells (out of 40,000)",title = "Model vs observed pp38+ cells (average per bird)") + theme_minimal() + ylim(0,1000)
+# 
+# #plot for infected feather follicles  
+# FFE_plot <- ggplot(data = df_for_ffe, aes(x = time/24, y = If)) + geom_line( color = "pink") + 
+#   geom_point(data = baigent2016, aes(x = time, y = mean_genomes), inherit.aes = FALSE, color = "red") + 
+#   labs(title = "WithinHost Delay", color = "Cell Type")  + xlab(label = "Time (Days)") + 
+#   ylab(label = "Cell Number")  +  scale_y_log10(limits = c(0.01, 10000000)) + 
+#   theme(panel.grid = element_blank(), panel.background = element_blank(),   legend.text = element_text(size = 12),
+#         legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + labs( y = "Cell Number", x = "Time (Days)", title = "Infected Feather Follicle Epithelium") 
