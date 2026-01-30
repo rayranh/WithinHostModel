@@ -67,10 +67,13 @@ Likelihood <- function(params){
   loglike_pp38 <- dbinom(pp38_dbinom$mean.pp38, prob = pp38_dbinom$prob_Cyto, size = 40000, log = TRUE) 
   
   loglike_pp38_B <- dbinom(pp38_dbinom$Bcell_no, prob = pp38_dbinom$prob_Cyto_B, size = pp38_dbinom$mean.pp38, log = TRUE) 
+  
+  loglike_pp38_T <- dbinom(pp38_dbinom$Tcell_no, prob = pp38_dbinom$prob_Cyto_T, size = pp38_dbinom$mean.pp38, log = TRUE) # am i double counting? Adding too much weight 
+  
 
   
   
-  return(-sum(loglike_pp38, loglike_pp38_B)) 
+  return(-sum(loglike_pp38, loglike_pp38_B, loglike_pp38_T)) 
   
 } 
 
@@ -180,6 +183,6 @@ final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha())
 
 
 
-write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_30_26_SuperSimpleModel_CytoCelldinom.csv") 
+write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_30_26_SuperSimpleModel_CytoCelldinom_addedCtdbinom.csv") 
 
 

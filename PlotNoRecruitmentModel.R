@@ -10,15 +10,14 @@ library(readxl)
 library(purrr)
 
 sir_equations <- function(time, variables, parameters) {
-  with(as.list(c(variables, parameters)), {
-    dB  <- -beta*Cb*B_cells - beta*Ct*B_cells  
-    dCb <-  beta*Cb*B_cells + beta*Ct*B_cells  - alpha*Cb 
-    dT  <- -nu_a*Cb*T_cells - nu_a*Ct*T_cells  
-    dAt <-  nu_a*Cb*T_cells + nu_a*Ct*T_cells - beta*Ct*At - beta*Cb*At 
-    
-    Inf_At <- T_sus * (beta*Ct*At + beta*Cb*At)
+  with(as.list(c(variables, parameters)), { #turning initial values and parms into vectors and then list and then applying to below equations // include death of B cells + host response death apoptosis? 
+    dB <- - Pb* (beta*Cb*B_cells + beta_2*Ct*B_cells)   
+    dCb <-  Pb* (beta*Cb*B_cells + beta_2*Ct*B_cells) - alpha*Cb 
+    dT <- -nu_a*Cb*T_cells - nu_a*Ct*T_cells  
+    dAt <- nu_a*Cb*T_cells + nu_a*Ct*T_cells - beta_2*Ct*At - beta*Cb*At 
+    Inf_At <- T_sus * (beta_2*Ct*At + beta*Cb*At)
     dLt <- theta*Inf_At - lambda*Lt  
-    dCt <- (1-theta)*Inf_At - alpha*Ct
+    dCt <- (1-theta)*Inf_At - alpha_Ct*Ct
     
     return(list(c(dB, dCb, dT, dAt, dLt, dCt))) 
   }) 
@@ -77,15 +76,32 @@ creating_plots <- function(listofdf, i) {
 
 
 ## PARAMETERS AND INITIAL VALUES ##
-## IMPORTANT: for plotting we keep these in NATURAL scale (since optim_data is natural scale too)
+## IMPORTANT: for plotting we keep these in NATURAL scale (since optim_data is natural scale too) 
 
-parameters_values <- c( 
-  beta   = 6.951463e-07,
-  nu_a   = 4.668718e-01,
-  alpha  = 0.0104,
-  theta  = 0.8,
-  lambda = 0.02380952,
-  T_sus  = 0.005
+
+parameter_intervals <-list(
+  beta  = log(c(1e-08, 1e-2)), 
+  beta_2  = log(c(1e-08, 1e-2)),
+  alpha = log(c(0.0104, 0.041)), 
+  alpha_Ct = log(c(0.0104,0.041)),
+  T_sus = qlogis(c(0.0002, 0.01116))
+)
+#taken from baigent data  
+
+
+## PARAMETERS AND INITIAL VALUES ## 
+  
+
+parameters_values <- c(
+  beta     = 6.951463e-07,
+  beta_2   = 6.951463e-07,
+  nu_a     = 4.668718e-01,
+  alpha    = 0.0104,
+  alpha_Ct = 0.0104,
+  theta    = 0.8,
+  lambda   = 0.02380952,
+  T_sus    = 0.005,
+  Pb       = 0.03
 )
 
 initial_values <- c(
@@ -104,7 +120,7 @@ time_values <- seq(0, 1080) # hours
 baigent1998 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent1998.xlsx", 3 ) %>% 
   mutate(mean.pp38 = as.numeric(mean.pp38))
 
-optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_9_26_SuperSimpleModel.csv") %>% 
+optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_30_26_SuperSimpleModel_CytoCelldinom_addedCtdbinom.csv") %>% 
   filter(Converged == 0) %>% 
   slice_min(Likely, n = 10) %>% 
   select(!c(Likely, Converged, X))
@@ -114,7 +130,7 @@ list_of_df <- purrr::map(seq_len(nrow(optim_data)), function(i) {
   parameter_vector(dat = optim_data, i = i)
 })
 
-pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_9_26_SuperSimpleModel.pdf", width = 7, height = 5)
+pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_30_26_SuperSimpleModel_CytoCelldinom_addedCtdbinom.pdf", width = 7, height = 5)
 
 generating_plots <- purrr::map(seq_len(nrow(optim_data)), function(i) {
   creating_plots(listofdf = list_of_df, i = i)
