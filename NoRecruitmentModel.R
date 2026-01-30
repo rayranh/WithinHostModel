@@ -153,12 +153,14 @@ optim_for_alpha <- function(){
 
 
 #how many random parameter sets I want 
-n_per_alpha <-10
+n_per_alpha <-50
 
 
 
-final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha())
+final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha()) 
 
-write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_9_26_SuperSimpleModel.csv") 
+
+
+#write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_9_26_SuperSimpleModel.csv") 
 
 
