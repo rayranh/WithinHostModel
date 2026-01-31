@@ -41,7 +41,8 @@ Likelihood <- function(params){
   pars["beta_2"]  <- exp(pars["beta_2"])
   pars["alpha"] <- exp(pars["alpha"]) 
   pars["alpha_Ct"] <- exp(pars["alpha_Ct"])
-  pars["T_sus"] <- plogis(pars["T_sus"])   
+  pars["T_sus"] <- plogis(pars["T_sus"])  
+  pars["Pb"] <- plogis(pars["Pb"])
   pars["nu_f"]  <- exp(pars["nu_f"]) 
 
   
@@ -107,7 +108,8 @@ parameter_intervals <-list(
   alpha = log(c(0.0104, 0.041)), 
   alpha_Ct = log(c(0.0104,0.041)),
   T_sus = qlogis(c(0.0002, 0.01116)), 
-  nu_f = log(c(0.006, 0.01))
+  nu_f = log(c(0.005952381, 0.0104)), 
+  Pb     = qlogis(c(0.0001, 0.10))
 )
 #taken from baigent data  
 
@@ -123,14 +125,14 @@ parameters_values <- c(
   theta  = 0.8,
   lambda = 0.005952381, #1/(24*7)  
   T_sus  = qlogis(0.005),
-  Pb     = 0.03
+  Pb     = qlogis(0.03) 
 ) 
 
 
 initial_values<- c(
-  B_cells = 2.4e6/3,
+  B_cells = 2.4e9/3,
   Cb      = 1,
-  T_cells = 1.5e6/3,
+  T_cells = 7.4e8/3,
   At      = 0,
   Lt      = 0,
   Ct      = 0, 
@@ -193,7 +195,7 @@ optim_for_alpha <- function(){
     nu_a   = parameters_values["nu_a"],
     theta  = parameters_values["theta"],
     lambda = parameters_values["lambda"], 
-    Pb =  parameters_values["Pb"], 
+    Pb =  plogis(answeroptim$par["Pb"]), 
     Converged = answeroptim$convergence
     )
   
