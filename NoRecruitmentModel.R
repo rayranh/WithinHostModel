@@ -42,10 +42,12 @@ Likelihood <- function(params){
   pars["alpha"] <- exp(pars["alpha"]) 
   pars["alpha_Ct"] <- exp(pars["alpha_Ct"])
   pars["T_sus"] <- plogis(pars["T_sus"])  
+  pars["theta"] <- plogis(pars["theta"])  
   pars["Pb"] <- plogis(pars["Pb"])
-  pars["nu_f"]  <- exp(pars["nu_f"]) 
+  pars["nu_f"]  <- exp(pars["nu_f"])  
+  pars["nu_a"] <- exp(pars["nu_a"]) 
 
-  
+  ### PUT PROPORTIONS HERE FOR INIT ### 
 
   # run model
   results <- as.data.frame(
@@ -81,7 +83,7 @@ Likelihood <- function(params){
   
   LogLHoodStor <- 0 
   
-  loglike_pp38 <- dbinom(pp38_dbinom$mean.pp38, prob = pp38_dbinom$prob_Cyto, size = 40000, log = TRUE) 
+  loglike_pp38 <- dbinom(pp38_dbinom$mean.pp38, prob = pp38_dbinom$prob_Cyto, size = 40000, log = TRUE)  
   
   LogLHoodStor <- LogLHoodStor + sum(loglike_pp38) 
   
@@ -107,9 +109,10 @@ parameter_intervals <-list(
   beta_2  = log(c(1e-08, 1e-2)),
   alpha = log(c(0.0104, 0.041)), 
   alpha_Ct = log(c(0.0104,0.041)),
-  T_sus = qlogis(c(0.0002, 0.01116)), 
+  T_sus = qlogis(c(0.5, 0.7)),  
   nu_f = log(c(0.005952381, 0.0104)), 
-  Pb     = qlogis(c(0.0001, 0.10))
+  Pb     = qlogis(c(0.0001, 0.10)), 
+  nu_a = log(c(0.01,0.3)) 
 )
 #taken from baigent data  
 
@@ -118,13 +121,12 @@ parameter_intervals <-list(
 parameters_values <- c(
   beta   = log(6.951463e-07), 
   beta_2   = log(6.951463e-07),
-  nu_a   = 4.668718e-01, 
+  nu_a   = log(4.668718e-01), 
   nu_f   = log(0.008),
   alpha  = log(0.0104), 
   alpha_Ct = log(0.0104),
-  theta  = 0.8,
-  lambda = 0.005952381, #1/(24*7)  
-  T_sus  = qlogis(0.005),
+  T_sus  = qlogis(0.5), 
+  theta = 0.8,
   Pb     = qlogis(0.03) 
 ) 
 
@@ -192,8 +194,8 @@ optim_for_alpha <- function(){
     alpha_Ct  = exp(answeroptim$par["alpha_Ct"]),
     T_sus  = plogis(answeroptim$par["T_sus"]), 
     nu_f   = exp(answeroptim$par["nu_f"]),
-    nu_a   = parameters_values["nu_a"],
-    theta  = parameters_values["theta"],
+    nu_a   = exp(answeroptim$par["nu_a"]),
+    theta = parameters_values["theta"],
     lambda = parameters_values["lambda"], 
     Pb =  plogis(answeroptim$par["Pb"]), 
     Converged = answeroptim$convergence
@@ -211,6 +213,6 @@ final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha())
 
 
 
-write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_30_26_SuperSimpleModel_AddedBaigent2016.csv") 
+write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_31_26_SuperSimpleModel_AddedBaigent2016_fittingtheta2csv") 
 
 
