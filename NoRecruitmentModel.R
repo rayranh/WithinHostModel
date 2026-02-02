@@ -19,10 +19,9 @@ sir_equations <- function(time, variables, parameters) {
     dB <- - Pb* (beta*Cb*B_cells + beta_2*Ct*B_cells)   
     dCb <-  Pb* (beta*Cb*B_cells + beta_2*Ct*B_cells) - alpha*Cb 
     dT <- -nu_a*Cb*T_cells - nu_a*Ct*T_cells  
-    dAt <- nu_a*Cb*T_cells + nu_a*Ct*T_cells - beta_2*Ct*At - beta*Cb*At 
-    Inf_At <- T_sus * (beta_2*Ct*At + beta*Cb*At)
-    dLt <- theta*Inf_At  
-    dCt <- (1-theta)*Inf_At - alpha_Ct*Ct 
+    dAt <- nu_a*Cb*T_cells + nu_a*Ct*T_cells - T_sus*(beta_2*Ct*At + beta*Cb*At) 
+    dLt <- theta*T_sus*(beta_2*Ct*At + beta*Cb*At) 
+    dCt <- (1-theta)*T_sus*(beta_2*Ct*At + beta*Cb*At) - alpha_Ct*Ct 
     dF <- -nu_f*Lt*F
     dIf <- nu_f*Lt*F
     
@@ -42,7 +41,6 @@ Likelihood <- function(params){
   pars["alpha"] <- exp(pars["alpha"]) 
   pars["alpha_Ct"] <- exp(pars["alpha_Ct"])
   pars["T_sus"] <- plogis(pars["T_sus"])  
-  pars["theta"] <- plogis(pars["theta"])  
   pars["Pb"] <- plogis(pars["Pb"])
   pars["nu_f"]  <- exp(pars["nu_f"])  
   pars["nu_a"] <- exp(pars["nu_a"]) 
@@ -196,7 +194,6 @@ optim_for_alpha <- function(){
     nu_f   = exp(answeroptim$par["nu_f"]),
     nu_a   = exp(answeroptim$par["nu_a"]),
     theta = parameters_values["theta"],
-    lambda = parameters_values["lambda"], 
     Pb =  plogis(answeroptim$par["Pb"]), 
     Converged = answeroptim$convergence
     )
@@ -205,7 +202,7 @@ optim_for_alpha <- function(){
 
 
 #how many random parameter sets I want 
-n_per_alpha <-10
+n_per_alpha <-2
 
 
 
@@ -213,6 +210,6 @@ final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha())
 
 
 
-write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_31_26_SuperSimpleModel_AddedBaigent2016_fittingtheta2csv") 
+#write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_31_26_SuperSimpleModel_AddedBaigent2016_fittingtheta2csv") 
 
 
