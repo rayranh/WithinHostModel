@@ -1,5 +1,5 @@
-#Not fitting for theta# 
-#did not get very good likelihoods ranging from 10,000 - 4,000 
+
+#not fitting for Tsus = 0.5, likelihoods stably around 3900
 rm(list = ls())
 library(dplyr) 
 library(tibble)
@@ -40,7 +40,8 @@ Likelihood <- function(params){
   pars["beta_2"]  <- exp(pars["beta_2"])
   pars["alpha"] <- exp(pars["alpha"]) 
   pars["alpha_Ct"] <- exp(pars["alpha_Ct"])
-  pars["T_sus"] <- plogis(pars["T_sus"])  
+  # pars["T_sus"] <- plogis(pars["T_sus"])  
+  pars["theta"] <- plogis(pars["theta"]) 
   pars["Pb"] <- plogis(pars["Pb"])
   pars["nu_f"]  <- exp(pars["nu_f"])  
   pars["nu_a"] <- exp(pars["nu_a"]) 
@@ -107,7 +108,7 @@ parameter_intervals <-list(
   beta_2  = log(c(1e-08, 1e-2)),
   alpha = log(c(0.0104, 0.041)), 
   alpha_Ct = log(c(0.0104,0.041)),
-  T_sus = qlogis(c(0.5, 0.7)),  
+  theta = qlogis(c(0.8, 0.9)), 
   nu_f = log(c(0.005952381, 0.0104)), 
   Pb     = qlogis(c(0.0001, 0.10)), 
   nu_a = log(c(0.01,0.3)) 
@@ -123,8 +124,8 @@ parameters_values <- c(
   nu_f   = log(0.008),
   alpha  = log(0.0104), 
   alpha_Ct = log(0.0104),
-  theta  = 0.8,
-  T_sus  = qlogis(0.5),
+  theta  = qlogis(0.8),
+  T_sus  = 0.5,
   Pb     = qlogis(0.03) 
 ) 
 
@@ -189,10 +190,10 @@ optim_for_alpha <- function(){
     beta_2   = exp(answeroptim$par["beta_2"]),
     alpha  = exp(answeroptim$par["alpha"]), 
     alpha_Ct  = exp(answeroptim$par["alpha_Ct"]),
-    T_sus  = plogis(answeroptim$par["T_sus"]), 
+    T_sus  = parameters_values["T_sus"], 
     nu_f   = exp(answeroptim$par["nu_f"]),
     nu_a   = exp(answeroptim$par["nu_a"]),
-    theta = parameters_values["theta"],
+    theta = plogis(answeroptim$par["theta"]),
     Pb =  plogis(answeroptim$par["Pb"]), 
     Converged = answeroptim$convergence
   )
