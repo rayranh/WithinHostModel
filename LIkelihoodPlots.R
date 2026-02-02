@@ -12,29 +12,28 @@ library(purrr)
 sir_equations <- function(time, variables, parameters) {
   with(as.list(c(variables, parameters)), { #turning initial values and parms into vectors and then list and then applying to below equations // include death of B cells + host response death apoptosis? 
     dB <-  -beta*Cb*B_cells - beta_2*Ct*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
-    dBr <- (1-Pb)*(g1*(Cb+Ct)/(g2+(Cb+Ct)))
+    dBr <- (1-Pb)*(g1*(Cb+Ct)/(g2+(Cb+Ct))) #probably should have alpha for cytolytic infection 
     dCb <- beta*Cb*B_cells + beta_2*Ct*B_cells - alpha*Cb 
     dT <- -nu_a*Cb*T_cells - nu_b*Ct*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
-    dAt <- nu_a*Cb*T_cells + nu_b*Ct*T_cells - beta_2*Ct*At - beta*Cb*At  # beta = rate of activated T cells by Ct and Cb cells    
-    dLt <- theta*(beta_2*Ct*At + beta*Cb*At)  - lambda*Lt 
+    dAt <- nu_a*Cb*T_cells + nu_b*Ct*T_cells - beta_2*Ct*At - beta*Cb*At  # beta = rate of activated T cells by Ct and Cb cells   
+    dLt <- theta *(beta_2*Ct*At + beta*Cb*At)  - lambda*Lt 
     dLt2 <- lambda*Lt - lambda*Lt2 
     dLt3 <- lambda*Lt2 - lambda*Lt3 
     dLt4 <- lambda*Lt3 - lambda*Lt4
     dLt5 <- lambda*Lt4 - mu*Lt5
-    dCt <- (1-theta)*(beta_2*Ct*At + beta*Cb*At) - alpha_2*Ct
+    dCt <-  (1-theta)*(beta_2*Ct*At + beta*Cb*At) - alpha_2*Ct
     dZ <- mu*Lt5
     df <- -nu_f*Lt5*f
     dIf <- nu_f*Lt5*f
     return(list(c(dB, dCb,dBr, dT, dAt,dLt,dLt2, dLt3,dLt4, dLt5, dCt, dZ, df,dIf)))
   }) 
-}  
-
+} 
 
 
 parameter_vector <- function(dat,i) { 
   param_vector <- unlist(dat[i,])  
   init <- initial_values 
-  B0 <-  2.4e6/3 
+  B0 <-  2.4e9/3 
   
   pars <- parameters_values
   pars[names(param_vector)] <- param_vector 
@@ -111,18 +110,18 @@ parameters_values <- c(
   , alpha = 0.0104                   #death rate of cytolytic B cells (every 33 hours)
   , alpha_2 = 0.0104                 #death rate of cytolytic T cells (every 48 hours)
   , theta = 0.8                     #population of activated T cells 
-  , g1 = 1000                     #incoming B cells (every 15 hours)
+  , g1 = 10                     #incoming B cells (every 15 hours)
   , g2 = 100    
-  , h1 =1000                      #incoming T cells / determined no incoming T cells 
+  , h1 =10                      #incoming T cells / determined no incoming T cells 
   , h2 = 100
-  , lambda = 0.03                #adding delay, how long latent cell 'exposed' 
+  , lambda =0.02380952                  #adding delay, how long latent cell 'exposed' 
 )
 
 initial_values <- c( 
-  B_cells = 2.4e6/3  # from three organs 2.4e6/3 
+  B_cells = 2.4e9/3   # from three organs 2.4e6/3 
   , Cb = 1  
-  , Br = 0 
-  , T_cells = 1.5e6/3 # from three organs 1.5e6/3 
+  , Br =2.4e9/3 
+  , T_cells =7.4e8/3# from three organs 1.5e6/3 
   , At = 0 
   , Lt = 0 
   , Lt2 = 0 
@@ -142,11 +141,10 @@ time_values <- seq(0, 1080) # hours
 
 ### DATA FOR PLOT ### 
 baigent2016 <- read_xlsx("/Users/rayanhg/Downloads/baigent2016.xlsx", 2 ) 
-baigent1998 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent1998.xlsx", 3 ) %>% 
+baigent1998 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent1998.xlsx", 4 ) %>% 
   mutate(mean.pp38 = as.numeric(mean.pp38))    
-optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_9_26_randomnumgen_Pb_Br_WITHLT_plogis
-          .csv") %>% 
-  filter(Converged == 0) %>% slice_min(Likely, n = 10) %>% select(!c(Likely, Converged, X)) 
+optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.1.26.generatingrandomnumbers_withoutTsus.csv") %>% 
+  filter(Converged == 0) %>% slice_min(Likely, n = 10) %>% select(!c(Likely, Converged)) 
 
 
 #creating a list of dataframes set in motion by this function made on the fly that takes optim data and i takes in seq_len(nrow(()))
@@ -154,7 +152,7 @@ list_of_df <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   parameter_vector(dat = optim_data, i = i)
   }) 
 
- pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/jan_9_26_randomnumgen_Pb_Br_WITHLT_plogis.pdf", width = 7, height = 5)
+ pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.1.26.generatingrandomnumbers_withoutTsus.pdf", width = 7, height = 5)
 
  generating_plots <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
  creating_plots(listofdf = list_of_df, i = i)
@@ -162,7 +160,7 @@ list_of_df <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
 
 dev.off()
 
-df <- list_of_df[[1]] 
+#df <- list_of_df[[1]] 
 # df2 <- pivot_longer(df, cols = -time, names_to = "variable", values_to = "value") 
 # df_for_40000 <- df %>% mutate(cytolytic_scale_40000 = ((Cb+Ct)/(B_cells+Cb+Ct+T_cells+At+Br+Lt+Lt2+Lt3+Lt4+Lt5))* 40000) # for every 40000 cells in my model how many infected 
 # 
@@ -175,17 +173,17 @@ df <- list_of_df[[1]]
 #                                 "Lt2" = "chartreuse", "Lt3" = "chartreuse", "Lt4" = "chartreuse")) +
 #   labs(title = "WithinHost Delay", color = "Cell Type") + theme(legend.position = "right") +
 #   theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number") +
-#   geom_point(data = baigent1998, aes(x = time/24, y = mean.pp38), inherit.aes = FALSE, color = "red")  
+#   geom_point(data = baigent1998, aes(x = time/24, y = mean.pp38), inherit.aes = FALSE, color = "red")
 # 
-# #plotting cytolytic data 
-# cytolytic_plot <- ggplot(df_for_40000, aes(x = time/24, y = cytolytic_scale_40000)) + 
-#   geom_line(color = "#A6D854") + geom_point(data = baigent1998,aes(x = time / 24, y = mean.pp38),color = "red",linewidth = 1, inherit.aes = FALSE) +  
+# #plotting cytolytic data
+# cytolytic_plot <- ggplot(df_for_40000, aes(x = time/24, y = cytolytic_scale_40000)) +
+#   geom_line(color = "#A6D854") + geom_point(data = baigent1998,aes(x = time / 24, y = mean.pp38),color = "red",linewidth = 1, inherit.aes = FALSE) +
 #   labs(x = "Time (days)", y = "pp38+ cells (out of 40,000)",title = "Model vs observed pp38+ cells (average per bird)") + theme_minimal() + ylim(0,1000)
 # 
-# #plot for infected feather follicles  
-# FFE_plot <- ggplot(data = df_for_ffe, aes(x = time/24, y = If)) + geom_line( color = "pink") + 
-#   geom_point(data = baigent2016, aes(x = time, y = mean_genomes), inherit.aes = FALSE, color = "red") + 
-#   labs(title = "WithinHost Delay", color = "Cell Type")  + xlab(label = "Time (Days)") + 
-#   ylab(label = "Cell Number")  +  scale_y_log10(limits = c(0.01, 10000000)) + 
+  #plot for infected feather follicles
+# FFE_plot <- ggplot(data = df_for_ffe, aes(x = time/24, y = If)) + geom_line( color = "pink") +
+#   geom_point(data = baigent2016, aes(x = time, y = mean_genomes), inherit.aes = FALSE, color = "red") +
+#   labs(title = "WithinHost Delay", color = "Cell Type")  + xlab(label = "Time (Days)") +
+#   ylab(label = "Cell Number")  +  scale_y_log10(limits = c(0.01, 10000000)) +
 #   theme(panel.grid = element_blank(), panel.background = element_blank(),   legend.text = element_text(size = 12),
-#         legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + labs( y = "Cell Number", x = "Time (Days)", title = "Infected Feather Follicle Epithelium") 
+#         legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + labs( y = "Cell Number", x = "Time (Days)", title = "Infected Feather Follicle Epithelium")
