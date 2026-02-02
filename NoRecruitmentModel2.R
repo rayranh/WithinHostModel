@@ -1,5 +1,5 @@
-#Using this code to generate random numbers for ALL parameters not keeping alpha, beta, stagnant 
-
+#Not fitting for theta# 
+#did not get very good likelihoods ranging from 10,000 - 4,000 
 rm(list = ls())
 library(dplyr) 
 library(tibble)
@@ -20,7 +20,7 @@ sir_equations <- function(time, variables, parameters) {
     dCb <-  Pb* (beta*Cb*B_cells + beta_2*Ct*B_cells) - alpha*Cb 
     dT <- -nu_a*Cb*T_cells - nu_a*Ct*T_cells  
     dAt <- nu_a*Cb*T_cells + nu_a*Ct*T_cells - beta_2*Ct*At - beta*Cb*At 
-    dLt <- theta * T_sus * (beta_2*Ct*At + beta*Cb*At)
+    dLt <- theta * T_sus * (beta_2*Ct*At + beta*Cb*At) 
     dCt <- (1-theta)*T_sus * (beta_2*Ct*At + beta*Cb*At) - alpha_Ct*Ct 
     dF <- -nu_f*Lt*F
     dIf <- nu_f*Lt*F
@@ -41,7 +41,6 @@ Likelihood <- function(params){
   pars["alpha"] <- exp(pars["alpha"]) 
   pars["alpha_Ct"] <- exp(pars["alpha_Ct"])
   pars["T_sus"] <- plogis(pars["T_sus"])  
-  pars["theta"] <- plogis(pars["theta"])  
   pars["Pb"] <- plogis(pars["Pb"])
   pars["nu_f"]  <- exp(pars["nu_f"])  
   pars["nu_a"] <- exp(pars["nu_a"]) 
@@ -109,7 +108,6 @@ parameter_intervals <-list(
   alpha = log(c(0.0104, 0.041)), 
   alpha_Ct = log(c(0.0104,0.041)),
   T_sus = qlogis(c(0.5, 0.7)),  
-  theta = qlogis(c(0.5, 0.9)),
   nu_f = log(c(0.005952381, 0.0104)), 
   Pb     = qlogis(c(0.0001, 0.10)), 
   nu_a = log(c(0.01,0.3)) 
@@ -125,7 +123,7 @@ parameters_values <- c(
   nu_f   = log(0.008),
   alpha  = log(0.0104), 
   alpha_Ct = log(0.0104),
-  theta  = qlogis(0.8),
+  theta  = 0.8,
   T_sus  = qlogis(0.5),
   Pb     = qlogis(0.03) 
 ) 
@@ -194,7 +192,7 @@ optim_for_alpha <- function(){
     T_sus  = plogis(answeroptim$par["T_sus"]), 
     nu_f   = exp(answeroptim$par["nu_f"]),
     nu_a   = exp(answeroptim$par["nu_a"]),
-    theta = plogis(answeroptim$par["theta"]),
+    theta = parameters_values["theta"],
     Pb =  plogis(answeroptim$par["Pb"]), 
     Converged = answeroptim$convergence
   )
@@ -209,5 +207,5 @@ n_per_alpha <-10
 
 final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha()) 
 
-write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.2.26.NoRecruitmentModel_fittingThetaPbTsus_NoLambda.csv")
+#write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.2.26.NoRecruitmentModel_fittingThetaPbTsus_NoLambda.csv")
 
