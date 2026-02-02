@@ -1,6 +1,5 @@
 
-#not fitting for Pb 
-
+# adding lambda made some slightly better likelihoods = lowest in this run was 2751 
 rm(list = ls())
 library(dplyr) 
 library(tibble)
@@ -21,7 +20,7 @@ sir_equations <- function(time, variables, parameters) {
     dCb <-  Pb* (beta*Cb*B_cells + beta_2*Ct*B_cells) - alpha*Cb 
     dT <- -nu_a*Cb*T_cells - nu_a*Ct*T_cells  
     dAt <- nu_a*Cb*T_cells + nu_a*Ct*T_cells - beta_2*Ct*At - beta*Cb*At 
-    dLt <- theta * T_sus * (beta_2*Ct*At + beta*Cb*At) 
+    dLt <- theta * T_sus * (beta_2*Ct*At + beta*Cb*At) - lambda*Lt 
     dCt <- (1-theta)*T_sus * (beta_2*Ct*At + beta*Cb*At) - alpha_Ct*Ct 
     dF <- -nu_f*Lt*F
     dIf <- nu_f*Lt*F
@@ -43,7 +42,7 @@ Likelihood <- function(params){
   pars["alpha_Ct"] <- exp(pars["alpha_Ct"])
   pars["T_sus"] <- plogis(pars["T_sus"])  
   pars["theta"] <- plogis(pars["theta"]) 
-  #pars["Pb"] <- plogis(pars["Pb"])
+  pars["Pb"] <- plogis(pars["Pb"])
   pars["nu_f"]  <- exp(pars["nu_f"])  
   pars["nu_a"] <- exp(pars["nu_a"]) 
   
@@ -112,7 +111,7 @@ parameter_intervals <-list(
   theta = qlogis(c(0.8, 0.9)),  
   T_sus = qlogis(c(0.5,0.8)),
   nu_f = log(c(0.005952381, 0.0104)), 
- # Pb     = qlogis(c(0.0001, 0.10)), 
+ Pb    = qlogis(c(0.0001, 0.10)), 
   nu_a = log(c(0.01,0.3)) 
 )
 #taken from baigent data  
@@ -128,7 +127,8 @@ parameters_values <- c(
   alpha_Ct = log(0.0104),
   theta  = qlogis(0.8),
   T_sus  = qlogis(0.5),
-  Pb     = 0.03
+  Pb     =qlogis( 0.03), 
+  lambda = 0.00595
 ) 
 
 
@@ -196,8 +196,8 @@ optim_for_alpha <- function(){
     nu_f   = exp(answeroptim$par["nu_f"]),
     nu_a   = exp(answeroptim$par["nu_a"]),
     theta = plogis(answeroptim$par["theta"]),
-    #Pb =  plogis(answeroptim$par["Pb"])  
-    Pb = parameters_values["Pb"], 
+    Pb =  plogis(answeroptim$par["Pb"]),  
+    lambda = parameters_values["lambda"],
     Converged = answeroptim$convergence
   )
   
