@@ -16,14 +16,14 @@ library(purrr)
 ## SIR MODEL ## 
 sir_equations <- function(time, variables, parameters) {
   with(as.list(c(variables, parameters)), { #turning initial values and parms into vectors and then list and then applying to below equations // include death of B cells + host response death apoptosis? 
-    dB <- - Pb* (beta*Cb*B_cells + beta_2*Ct*B_cells)   
-    dCb <-  Pb* (beta*Cb*B_cells + beta_2*Ct*B_cells) - alpha*Cb 
+    dB <- -Pb* (beta*Cb*B_cells + beta_2*Ct*B_cells)   # add Pb also to initial values not correct to do without 
+    dCb <- Pb* (beta*Cb*B_cells + beta_2*Ct*B_cells) - alpha*Cb 
     dT <- -nu_a*Cb*T_cells - nu_a*Ct*T_cells  
     dAt <- nu_a*Cb*T_cells + nu_a*Ct*T_cells - beta_2*Ct*At - beta*Cb*At 
-    dLt <- theta * T_sus * (beta_2*Ct*At + beta*Cb*At) - lambda*Lt 
-    dCt <- (1-theta)*T_sus * (beta_2*Ct*At + beta*Cb*At) - alpha_Ct*Ct 
-    dF <- -nu_f*Lt*F
-    dIf <- nu_f*Lt*F
+    dLt <- theta*(beta_2*Ct*At + beta*Cb*At)
+    dCt <- (1-theta)*(beta_2*Ct*At + beta*Cb*At) - alpha_Ct*Ct 
+    dF <- -nu_f*Lt*f 
+    dIf <- nu_f*Lt*f 
     
     return(list(c(dB, dCb, dT, dAt, dLt, dCt, dF, dIf))) 
   }) 
@@ -33,18 +33,20 @@ sir_equations <- function(time, variables, parameters) {
 
 Likelihood <- function(params){   
   pars <- parameters_values 
-  init <- initial_values 
+  init <- initial_values  
+  B0 <- 2.4e9/3
   
   pars[names(params)] <- params
   pars["beta"]  <- exp(pars["beta"]) 
   pars["beta_2"]  <- exp(pars["beta_2"])
   pars["alpha"] <- exp(pars["alpha"]) 
   pars["alpha_Ct"] <- exp(pars["alpha_Ct"])
-  pars["T_sus"] <- plogis(pars["T_sus"])  
   pars["theta"] <- plogis(pars["theta"]) 
   pars["Pb"] <- plogis(pars["Pb"])
   pars["nu_f"]  <- exp(pars["nu_f"])  
   pars["nu_a"] <- exp(pars["nu_a"]) 
+  
+  init["B_cells"] <- B0*pars["Pb"] 
   
   
   
@@ -104,14 +106,13 @@ Likelihood <- function(params){
 #create intervals for numbers 
 
 parameter_intervals <-list(
-  beta  = log(c(1e-08, 1e-2)), 
-  beta_2  = log(c(1e-08, 1e-2)),
+  beta  = log(c(1e-14, 1e-7)), 
+  beta_2  = log(c(1e-14, 1e-7)),
   alpha = log(c(0.0104, 0.041)), 
   alpha_Ct = log(c(0.0104,0.041)),
   theta = qlogis(c(0.8, 0.9)),  
-  T_sus = qlogis(c(0.5,0.8)),
   nu_f = log(c(0.005952381, 0.0104)), 
- Pb    = qlogis(c(0.0001, 0.10)), 
+ Pb    = qlogis(c(0.01, 0.10)), 
   nu_a = log(c(0.01,0.3)) 
 )
 #taken from baigent data  
@@ -126,9 +127,7 @@ parameters_values <- c(
   alpha  = log(0.0104), 
   alpha_Ct = log(0.0104),
   theta  = qlogis(0.8),
-  T_sus  = qlogis(0.5),
-  Pb     =qlogis( 0.03), 
-  lambda = 0.00595
+  Pb     =qlogis( 0.03) 
 ) 
 
 
@@ -139,7 +138,7 @@ initial_values<- c(
   At      = 0,
   Lt      = 0,
   Ct      = 0, 
-  F       = 400000, 
+  f       = 400000, 
   If      = 0 
 )
 ### TIME ### 
@@ -192,12 +191,10 @@ optim_for_alpha <- function(){
     beta_2   = exp(answeroptim$par["beta_2"]),
     alpha  = exp(answeroptim$par["alpha"]), 
     alpha_Ct  = exp(answeroptim$par["alpha_Ct"]),
-    T_sus  = plogis(answeroptim$par["T_sus"]), 
     nu_f   = exp(answeroptim$par["nu_f"]),
     nu_a   = exp(answeroptim$par["nu_a"]),
     theta = plogis(answeroptim$par["theta"]),
     Pb =  plogis(answeroptim$par["Pb"]),  
-    lambda = parameters_values["lambda"],
     Converged = answeroptim$convergence
   )
   
@@ -205,11 +202,11 @@ optim_for_alpha <- function(){
 
 
 #how many random parameter sets I want 
-n_per_alpha <-10
+n_per_alpha <-50
 
 
 
 final_df <- purrr::map_df(1:n_per_alpha, ~optim_for_alpha()) 
 
-#write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.2.26.NoRecruitmentModel_fittingThetaPbTsus_NoLambda.csv")
+write.csv(final_df, file = "/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.3.26.NoRecruitmentModel_correctPb_smallerbeta.csv")
 
