@@ -58,7 +58,6 @@ parameter_vector <- function(dat,i) {
     filter(time %in% obs_hourspp38) %>% select(prob_Cyto_B, prob_Cyto_T, prob_Cyto, numInfCells, time) 
   
   
-  
   #counting number of birds in each timepoint 
   n_by_time <- baigent1998 %>%
     filter(time %in% obs_hourspp38) %>%
@@ -69,7 +68,35 @@ parameter_vector <- function(dat,i) {
   
   
   return(cyto_df2)
-} 
+}  
+
+
+parameter_vector_FFE <- function(dat,i) { 
+  param_vector <- unlist(dat[i,])  
+  init <- initial_values 
+  B0 <-  2.4e9/3 
+  
+  pars <- parameters_values
+  pars[names(param_vector)] <- param_vector 
+  init["B_cells"] <- B0*pars["Pb"] 
+  init["Br"] <- B0*(1 - pars["Pb"])  
+  
+  
+  
+  
+  # run model
+  results <- as.data.frame(
+    ode(y = init, 
+        times = time_values, 
+        func = sir_equations, 
+        parms = pars))   
+  
+  df_FFE <- results %>% filter(time %in% matched_time) %>% select(time, If) %>% left_join(baigent2016, by = "time")
+ 
+  
+
+  return(df_FFE)
+}  
 
 
 
@@ -111,12 +138,14 @@ initial_values <- c(
 
 
 time_values <- seq(0, 1080) # hours   
-obs_hourspp38 <- c(72,96,120,144) 
+obs_hourspp38 <- c(72,96,120,144)  
+#matching to the wack hours of baigent2016
+matched_time <- c(3,6,10,17,20,26,33,38)*24 
 
 
 
 ### DATA FOR PLOT ### 
-baigent2016 <- read_xlsx("baigent2016.xlsx", 2 ) 
+baigent2016 <- read_xlsx("baigent2016.xlsx", 2 ) %>% mutate(time = time*24)
 baigent1998 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent1998.xlsx", 3 ) %>% 
   mutate(mean.pp38 = as.numeric(mean.pp38),
          Bcell_no = as.numeric(Bcell_no), 
@@ -124,14 +153,11 @@ baigent1998 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent1998.
 optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.11.26.FittingDnbinom_mu_theta.csv") %>% 
   filter(Converged == 0) %>% slice_min(Likely, n = 10) %>% select(c(beta, beta_2, alpha, alpha_2,nu_a,nu_b,nu_f,mu,g1,g2,h1,h2,Pb)) 
 
-
- list_of_df <-  purrr::map(seq_len(nrow(optim_data)), function(i) { 
-  parameter_vector(dat = optim_data, i = i)
-}) 
-
-
-# selecting only 1 data frame at a time 
- OneDf <- list_of_df[[1]]
+OneDf <- parameter_vector(dat = optim_data, i = 1)
+OneDfFFe <- parameter_vector_FFE(dat = optim_data, i = 1)
+ 
+ 
+ # ------------ Simulating Data for pp38 ------------ # 
  
  sim_df <- purrr::map_df(1:5000,
    function(rep_id) {
@@ -148,7 +174,24 @@ optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNu
            )
          )
        })
-     })
+     }) 
+ 
+ # ------------ Simulating Data for FFE ------------ # 
+ 
+ sim_df_FFE <- purrr::map_df(1:5000,
+                         function(rep_id) {
+                           purrr::map_df(seq_len(nrow(OneDfFFe)), function(i) { 
+                             tibble(
+                               replicate = rep_id,
+                               time = OneDfFFe$time[i],
+                               FFE_sim = 10^rnorm(  
+                                 n = 1, 
+                                 mean = log10(OneDfFFe$If[i]), 
+                                 sd = 1.15 
+                               )
+                             )
+                           })
+                         }) 
 
  
  sim_df_median <- sim_df %>%
@@ -158,6 +201,11 @@ optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNu
              high = quantile(pp38_sim, 0.975), 
              .groups = "drop") 
  
+ sim_FFE_median <- sim_df_FFE %>% 
+   group_by(time) %>% summarise(med = median(FFE_sim), 
+                                low = quantile(FFE_sim, 0.025), 
+                                high = quantile(FFE_sim, 0.975), 
+                                .groups = "drop")
  
  
  
@@ -174,7 +222,23 @@ optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNu
  prop_inside  <- n_inside  / n_total
  
  prop_inside
- prop_outside
+ prop_outside 
+ 
+ 
+ obs_with_band_FFE <- baigent2016 %>%
+   left_join(sim_FFE_median, by = "time") %>%
+   mutate(outside = mean_genomes < low | mean_genomes > high)
+ 
+ n_total_FFE   <- nrow(obs_with_band_FFE)
+ n_outside_FFE <- sum(obs_with_band_FFE$outside, na.rm = TRUE)
+ n_inside_FFE  <- n_total_FFE - n_outside_FFE
+ 
+ prop_inside_FFE <- n_inside_FFE / n_total_FFE
+ prop_outside_FFE <- n_outside_FFE / n_total_FFE
+ 
+ prop_inside_FFE
+ prop_outside_FFE
+ 
  
  
  #5000 takes 60 sec to run 
@@ -186,6 +250,15 @@ p <- ggplot(sim_df_median, aes(x = time/24)) + geom_ribbon(aes(ymin = low, ymax 
   labs(title = "Simulated pp38 data", x = "time(days)", y = "No. of pp38 Infected Cells") + 
   theme(panel.grid = element_blank()) + 
   theme_classic()
+
+p2 <- ggplot(sim_FFE_median, aes(x = time/24)) + geom_ribbon(aes(ymin = low, ymax = high), fill = "grey80", alpha = 0.5) + 
+  geom_line(aes(y = med, colour = "model")) + scale_y_log10(limits = c(0.0000001, 1000000000)) +
+  geom_point(data = baigent2016, aes(x = time/24, y = mean_genomes, color = "data"), inherit.aes = FALSE) + xlim(0,40) + 
+  scale_color_manual(values = c("model" = "black", "data" = "red"))  + 
+  labs(title = "Simulated FFE data", x = "time(days)", y = "Mean Number of MDV Genomes") + 
+  theme(panel.grid = element_blank()) + 
+  theme_classic()
+
 
 print(p)
 
