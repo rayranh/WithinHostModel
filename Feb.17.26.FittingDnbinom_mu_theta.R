@@ -289,24 +289,30 @@ workers <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
 
 plan(multisession, workers = workers)
 
-set.seed(as.integer(Sys.time()))
+task <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
+set.seed(task)
 
 results_list <- future_lapply(
   1:n_per_alpha,
   function(i) optim_for_alpha(),
   future.seed = TRUE
-)
+) 
 
 final_df <- bind_rows(results_list)
 
 
+out_file <- sprintf("~/scratch/Feb.17.26.FittingDnbinom_mu_theta_%s.csv", task)
+
 write.table(
   final_df,
-  file = "~/scratch/Feb.17.26.FittingDnbinom_mu_theta.csv",
+  file = out_file,
   sep = ",",
   row.names = FALSE,
   col.names = TRUE,
-  append = FALSE)
+  append = FALSE
+)
+
+
 
 end_time <- Sys.time() - start_time
 print(end_time)
