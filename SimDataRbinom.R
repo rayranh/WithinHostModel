@@ -51,11 +51,8 @@ parameter_vector <- function(dat,i) {
         func = sir_equations, 
         parms = pars))   
   
-  df <- results %>% mutate(prob_Cyto_B = (Cb)/(Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5+B_cells+T_cells+Br), 
-                             prob_Cyto_T = (Ct)/(Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5+B_cells+T_cells+Br), 
-                             prob_Cyto = (Ct+Cb)/(Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5+B_cells+T_cells+Br), 
-                           numInfCells = (Ct+Cb)/(Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5+B_cells+T_cells+Br)*40000) %>% 
-    filter(time %in% obs_hourspp38) %>% select(prob_Cyto_B, prob_Cyto_T, prob_Cyto, numInfCells, time) 
+  df <- results %>% mutate(numInfCells = (Ct+Cb)/(Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5+B_cells+T_cells+Br)*40000) %>% 
+    filter(time %in% obs_hourspp38) %>% select(numInfCells, time) 
   
   
   #counting number of birds in each timepoint 
@@ -64,7 +61,9 @@ parameter_vector <- function(dat,i) {
     count(time, name = "n_birds") 
   
   #attaching number of birds to each timepoint 
-  cyto_df2 <- df %>% left_join(y = n_by_time, by = "time")
+  cyto_df2 <- df %>% left_join(y = n_by_time, by = "time") %>% left_join(y = baigent1998, by = "time") %>% 
+    select(numInfCells, time,n_birds,mean.pp38) %>% group_by(time) %>% 
+    mutate(variance = sd(mean.pp38)^2,r= (numInfCells^2)/(variance-numInfCells), p = (numInfCells/variance)) %>% ungroup() # double check this is right 
   
   
   return(cyto_df2)
@@ -150,8 +149,9 @@ baigent1998 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent1998.
   mutate(mean.pp38 = as.numeric(mean.pp38),
          Bcell_no = as.numeric(Bcell_no), 
          Tcell_no = as.numeric(Tcell_no)) %>% filter(!is.na(mean.pp38))   
-optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.11.26.FittingDnbinom_mu_theta.csv") %>% 
-  filter(Converged == 0) %>% slice_min(Likely, n = 10) %>% select(c(beta, beta_2, alpha, alpha_2,nu_a,nu_b,nu_f,mu,g1,g2,h1,h2,Pb)) 
+optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.17.26.FittingDnbinom_mu_theta_ALL.csv") %>% 
+  filter(Converged == 0, Likely <= 316.5815 ) %>% arrange(Likely) %>%  
+  select(c(beta, beta_2, alpha, alpha_2,nu_a,nu_b,nu_f,mu,g1,g2,h1,h2,Pb)) 
 
 OneDf <- parameter_vector(dat = optim_data, i = 1)
 OneDfFFe <- parameter_vector_FFE(dat = optim_data, i = 1)
@@ -160,21 +160,12 @@ OneDfFFe <- parameter_vector_FFE(dat = optim_data, i = 1)
  # ------------ Simulating Data for pp38 ------------ # 
  
  sim_df <- purrr::map_df(1:5000,
-   function(rep_id) {
-       purrr::map_df(seq_len(nrow(OneDf)), function(i) { 
-         n_birds <- OneDf$n_birds[i]
-         tibble(
-           replicate = rep_id,
-           time = OneDf$time[i],
-           bird_no = seq_len(n_birds),
-           pp38_sim = rnbinom(
-             n = n_birds,
-             size = 0.5,
-             mu = OneDf$numInfCells[i] 
-           )
-         )
-       })
-     }) 
+   function(rep_id) { 
+     OneDf %>% transmute(replicate = rep_id, 
+                         time = time, 
+                         pp38_sim = rnbinom(n(), size = r, mu = numInfCells))
+     })
+
  
  # ------------ Simulating Data for FFE ------------ # 
  
@@ -187,7 +178,7 @@ OneDfFFe <- parameter_vector_FFE(dat = optim_data, i = 1)
                                FFE_sim = 10^rnorm(  
                                  n = 1, 
                                  mean = log10(OneDfFFe$If[i]), 
-                                 sd = 1.15 
+                                 sd = 0.642 
                                )
                              )
                            })
