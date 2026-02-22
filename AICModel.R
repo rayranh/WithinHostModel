@@ -129,7 +129,6 @@ Likelihood <- function(params){
 parameter_intervals <- list( beta_2 = log(c(1e-14,1e-9)), 
                              beta = log(c(1e-14, 1e-9)), 
                              alpha_2 =log(c(0.0104, 0.041)), 
-                             g1 = c(10,1000), 
                              g2 = c(1,1000), 
                              h1 = c(10,1000), 
                              h2 = c(1,1000),  
@@ -153,7 +152,7 @@ parameters_values <- c(
   , alpha = log(0.0104)             #death rate of cytolytic B cells (every 33 hours)
   , alpha_2 = log(0.0104)           #death rate of cytolytic T cells (every 48 hours)
   , theta = 0.8                     #population of activated T cells 
-  , g1 = 10                       #incoming B cells (every 15 hours)
+  , g1 = 0                      #incoming B cells (every 15 hours)
   , g2 = 100    
   , h1 =10                      #incoming T cells / determined no incoming T cells 
   , h2 = 100
@@ -190,9 +189,9 @@ obs_hourspp38 <- c(72,96,120,144) # make sure pp38 times is matching the data lo
 
 ## DATA ##  
 #cytolytic infection at a given time of B and T cells in Spleen, Thymus, Bursa 
-pp38_dat <- read_xlsx("baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, mean.pp38)
-baigent2016 <- read_xlsx("baigent2016.xlsx", 2 ) %>% arrange(time)
-AIC_RandomStarts <- read.csv("AIC_RandomStarts.csv") 
+pp38_dat <- read_xlsx("~/scratch/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, mean.pp38)
+baigent2016 <- read_xlsx("~/scratch/baigent2016.xlsx", 2 ) %>% arrange(time)
+AIC_RandomStarts <- read.csv("~/scratch/AIC_RandomStarts.csv") %>% select(-g1)
 
 
 optim_for_alpha <- function(params, i) {
@@ -220,7 +219,7 @@ optim_for_alpha <- function(params, i) {
       nu_b     = exp(answeroptim$par["nu_b"]),
       nu_f     = exp(answeroptim$par["nu_f"]),
       mu       = answeroptim$par["mu"],
-      g1       = answeroptim$par["g1"],
+      g1       = 0,
       g2       = answeroptim$par["g2"],
       h1       = answeroptim$par["h1"],
       h2       = answeroptim$par["h2"],
@@ -279,7 +278,7 @@ results_list <- future_lapply(
 final_df <- bind_rows(results_list)
 
 
-out_file <- "~/scratch/Feb.17.26.FittingDnbinom_10Parms_AIC.csv"
+out_file <- "~/scratch/Feb.17.26.FittingDnbinom_8Parms_NoG1_AIC.csv"
 
 write.table(
   final_df,
