@@ -129,8 +129,8 @@ Likelihood <- function(params){
 parameter_intervals <- list( beta_2 = log(c(1e-14,1e-9)), 
                              beta = log(c(1e-14, 1e-9)), 
                              alpha_2 =log(c(0.0104, 0.041)), 
-                             g1 = c(10,1000), 
-                             g2 = c(1,1000), 
+                             # g1 = c(10,1000), 
+                             # g2 = c(1,1000), 
                              h1 = c(10,1000), 
                              h2 = c(1,1000),  
                              nu_a = log(c(0.013,0.4)),             #Activation rate of T cells by cytolytic B cells (hours)
@@ -153,7 +153,7 @@ parameters_values <- c(
   , alpha = log(0.0104)             #death rate of cytolytic B cells (every 33 hours)
   , alpha_2 = log(0.0104)           #death rate of cytolytic T cells (every 48 hours)
   , theta = 0.8                     #population of activated T cells 
-  , g1 = 10                       #incoming B cells (every 15 hours)
+  , g1 = 0                       #incoming B cells (every 15 hours)
   , g2 = 100    
   , h1 =10                      #incoming T cells / determined no incoming T cells 
   , h2 = 100
@@ -192,7 +192,6 @@ obs_hourspp38 <- c(72,96,120,144) # make sure pp38 times is matching the data lo
 #cytolytic infection at a given time of B and T cells in Spleen, Thymus, Bursa 
 pp38_dat <- read_xlsx("~/scratch/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, mean.pp38)
 baigent2016 <- read_xlsx("~/scratch/baigent2016.xlsx", 2 ) %>% arrange(time)
-
 
 
 #generate random parameters 
@@ -235,8 +234,8 @@ optim_for_alpha <- function() {
       nu_b     = exp(answeroptim$par["nu_b"]),
       nu_f     = exp(answeroptim$par["nu_f"]),
       mu       = answeroptim$par["mu"],
-      g1       = answeroptim$par["g1"],
-      g2       = answeroptim$par["g2"],
+      # g1       = answeroptim$par["g1"],
+      # g2       = answeroptim$par["g2"],
       h1       = answeroptim$par["h1"],
       h2       = answeroptim$par["h2"],
       Pb       = plogis(answeroptim$par["Pb"]),
@@ -289,8 +288,8 @@ workers <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
 
 plan(multisession, workers = workers)
 
-task <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
-set.seed(task)
+task <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1")) #took out sys.tim() as set seed because array can start at same second 
+set.seed(task) #generating seed based off task 
 
 results_list <- future_lapply(
   1:n_per_alpha,
@@ -301,7 +300,7 @@ results_list <- future_lapply(
 final_df <- bind_rows(results_list)
 
 
-out_file <- sprintf("~/scratch/Feb.17.26.FittingDnbinom_mu_theta_%s.csv", task)
+out_file <- sprintf("~/scratch/Feb.23.26.FittingDnbinom_13_AIC.csv", task) #outputting separate files 
 
 write.table(
   final_df,
