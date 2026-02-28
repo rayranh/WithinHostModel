@@ -101,10 +101,10 @@ Likelihood_parts <- function(params){
   
   
   loglike_ffe <- dnorm(
-    log10(ffe_join$mean_genomes),
+    log10(ffe_join$mean_genomes), #log10() here to match the log10 of the data and keep scale true
     mean = log10(ffe_join$If),
     sd = 0.642, # calculated from 17dpi onwards 
-    log = TRUE
+    log = TRUE # outer log is TRUE so it is returning ln() to keep consistent
   )  
   
   sum_loglike_ffe <- sum(loglike_ffe) 
@@ -216,8 +216,8 @@ optim_for_alpha <- function() {
     answeroptim <- optim(
       par = starting_parms,
       fn  = Likelihood,
-      method = "Nelder-Mead",
-      control = list(maxit = 20000)
+      method = "SANN",
+      control = list(maxit = 1000)
     ) 
     
     parts <- Likelihood_parts(answeroptim$par)
@@ -277,7 +277,7 @@ optim_for_alpha <- function() {
 
 
 #how many random parameter sets I want 
-n_per_alpha <-50
+n_per_alpha <-5
 
 library(future)
 library(future.apply)
