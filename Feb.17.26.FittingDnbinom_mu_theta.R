@@ -217,7 +217,7 @@ optim_for_alpha <- function() {
       par = starting_parms,
       fn  = Likelihood,
       method = "SANN",
-      control = list(maxit = 1000)
+      control = list(maxit = 1000, temp = 50, tmax = 10)
     ) 
     
     parts <- Likelihood_parts(answeroptim$par)
@@ -300,7 +300,7 @@ results_list <- future_lapply(
 final_df <- bind_rows(results_list)
 
 
-out_file <- sprintf("~/work/Feb.23.26.FittingDnbinom_11h1g1_AIC_%03d.csv", task) #outputting separate files 
+out_file <- sprintf("~/work/Feb.28.26.TryingSANN_%03d.csv", task) #outputting separate files 
 
 write.table(
   final_df,
