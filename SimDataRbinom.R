@@ -144,24 +144,26 @@ matched_time <- c(3,6,10,17,20,26,33,38)*24
 
 
 ### DATA FOR PLOT ### 
-baigent2016 <- read_xlsx("baigent2016.xlsx", 2 ) %>% mutate(time = time*24)
+baigent2016 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent2016.xlsx", 2 ) %>% mutate(time = time*24)
 baigent1998 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent1998.xlsx", 3 ) %>% 
   mutate(mean.pp38 = as.numeric(mean.pp38),
          Bcell_no = as.numeric(Bcell_no), 
          Tcell_no = as.numeric(Tcell_no)) %>% filter(!is.na(mean.pp38))   
-optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.17.26.FittingDnbinom_mu_theta_ALL.csv") %>% 
-  filter(Converged == 0, Likely <= 316.5815 ) %>% arrange(Likely) %>%  
+optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.17.26.FittingDnbinom_Run2_ALL.csv") %>% 
+  filter(Converged == 0) %>% slice_min(Likely,n = 10) %>%  
   select(c(beta, beta_2, alpha, alpha_2,nu_a,nu_b,nu_f,mu,g1,g2,h1,h2,Pb)) 
 
-OneDf <- parameter_vector(dat = optim_data, i = 1)
-OneDfFFe <- parameter_vector_FFE(dat = optim_data, i = 1)
- 
+# OneDf <- parameter_vector(dat = optim_data, 1) 
+
+OneDf_all <- map_df(1:nrow(optim_data), ~ parameter_vector(optim_data, .x))
+# OneDfFFe <- parameter_vector_FFE(dat = optim_data, 1)
+OneDf_FFE_all <- map_df(1:nrow(optim_data), ~ parameter_vector_FFE(optim_data, .x)) 
  
  # ------------ Simulating Data for pp38 ------------ # 
  
- sim_df <- purrr::map_df(1:5000,
+ sim_df <- purrr::map_df(1:10000,
    function(rep_id) { 
-     OneDf %>% transmute(replicate = rep_id, 
+     OneDf_all %>% transmute(replicate = rep_id, 
                          time = time, 
                          pp38_sim = rnbinom(n(), size = r, mu = numInfCells))
      })
@@ -171,13 +173,13 @@ OneDfFFe <- parameter_vector_FFE(dat = optim_data, i = 1)
  
  sim_df_FFE <- purrr::map_df(1:5000,
                          function(rep_id) {
-                           purrr::map_df(seq_len(nrow(OneDfFFe)), function(i) { 
+                           purrr::map_df(seq_len(nrow(OneDf_FFE_all)), function(i) { 
                              tibble(
                                replicate = rep_id,
-                               time = OneDfFFe$time[i],
+                               time = OneDf_FFE_all$time[i],
                                FFE_sim = 10^rnorm(  
                                  n = 1, 
-                                 mean = log10(OneDfFFe$If[i]), 
+                                 mean = log10(OneDf_FFE_all$If[i]), 
                                  sd = 0.642 
                                )
                              )
