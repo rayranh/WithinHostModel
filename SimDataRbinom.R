@@ -144,13 +144,13 @@ matched_time <- c(3,6,10,17,20,26,33,38)*24
 
 
 ### DATA FOR PLOT ### 
-baigent2016 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent2016.xlsx", 2 ) %>% mutate(time = time*24)
+baigent2016 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent2016.xlsx", 3) %>% mutate(time = time*24)
 baigent1998 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent1998.xlsx", 3 ) %>% 
   mutate(mean.pp38 = as.numeric(mean.pp38),
          Bcell_no = as.numeric(Bcell_no), 
          Tcell_no = as.numeric(Tcell_no)) %>% filter(!is.na(mean.pp38))   
 optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.17.26.FittingDnbinom_Run2_ALL.csv") %>% 
-  filter(Converged == 0) %>% slice_min(Likely,n = 10) %>%  
+  filter(Converged == 0) %>% slice_min(Likely,n = 1) %>%  
   select(c(beta, beta_2, alpha, alpha_2,nu_a,nu_b,nu_f,mu,g1,g2,h1,h2,Pb)) 
 
 # OneDf <- parameter_vector(dat = optim_data, 1) 
@@ -237,21 +237,39 @@ OneDf_FFE_all <- map_df(1:nrow(optim_data), ~ parameter_vector_FFE(optim_data, .
  #5000 takes 60 sec to run 
 
  
-p <- ggplot(sim_df_median, aes(x = time/24)) + geom_ribbon(aes(ymin = low, ymax = high), fill = "grey80", alpha = 0.5) + geom_line(aes(y = med, colour = "model")) +
+p <- ggplot(sim_df_median, aes(x = time/24)) + geom_line(aes(y = med, colour = "model")) + 
+  geom_ribbon(aes(ymin = low, ymax = high), fill = "grey80", alpha = 0.5) + 
   xlim(0,10) + geom_point(data = baigent1998, aes(x = time/24, y = mean.pp38, color = "data"), inherit.aes = FALSE) + 
   scale_color_manual(values = c("model" = "black", "data" = "red")) +  ylim(0,500) + 
-  labs(title = "Simulated pp38 data", x = "time(days)", y = "No. of pp38 Infected Cells") + 
+  labs(title = "Data Generated from Model", x = "time(days post infection)", y = "# of Infected Cells") + 
   theme(panel.grid = element_blank()) + 
   theme_classic()
 
-p2 <- ggplot(sim_FFE_median, aes(x = time/24)) + geom_ribbon(aes(ymin = low, ymax = high), fill = "grey80", alpha = 0.5) + 
-  geom_line(aes(y = med, colour = "model")) + scale_y_log10(limits = c(0.0000001, 1000000000)) +
-  geom_point(data = baigent2016, aes(x = time/24, y = mean_genomes, color = "data"), inherit.aes = FALSE) + xlim(0,40) + 
-  scale_color_manual(values = c("model" = "black", "data" = "red"))  + 
-  labs(title = "Simulated FFE data", x = "time(days)", y = "Mean Number of MDV Genomes") + 
+p_data <- ggplot(baigent1998, aes(x = time/24, y = mean.pp38, color = "data")) + 
+  geom_point() + xlim(0,10) + scale_color_manual(values = c("model" = "black", "data" = "red")) +  ylim(0,500) + 
+  labs(title = "Data", x = "time(days post infection)", y = "# of Infected Cells") + 
+  theme(panel.grid = element_blank()) + 
+  theme_classic()
+
+p2 <- ggplot(sim_FFE_median, aes(x = time/24))  + geom_line(aes(y = med, colour = "model")) + 
+  geom_ribbon(aes(ymin = low, ymax = high), fill = "grey80", alpha = 0.5) + 
+  scale_y_log10(limits = c(0.0000001, 1000000000)) +
+  geom_point(data = baigent2016, aes(x = time/24, y = mean_genomes, color = "data"), inherit.aes = FALSE)+  
+  geom_errorbar(data = baigent2016, aes(ymin = lower.conf, ymax = upper.conf, color = "data")) + 
+  xlim(0,40)+scale_color_manual(values = c("model" = "black", "data" = "red"))  + 
+  labs(title = "Data Generated from Model ", x = "time(days post infection)", y = "Mean Number of MDV Genomes") + 
+  theme(panel.grid = element_blank()) + 
+  theme_classic() 
+
+p2_data <- ggplot(baigent2016, aes(x = time/24, y = mean_genomes, color = "data")) + geom_point() + 
+  geom_errorbar(aes(ymin = lower.conf, ymax = upper.conf )) + 
+  scale_y_log10(limits = c(0.0000001, 1000000000)) +
+  xlim(0,40) + scale_color_manual(values = c("model" = "black", "data" = "red"))  + 
+  labs(title = "Data", x = "time(days post infection)", y = "Mean Number of MDV Genomes") + 
   theme(panel.grid = element_blank()) + 
   theme_classic()
 
 
-print(p)
+print(p) 
+print(p2)
 
