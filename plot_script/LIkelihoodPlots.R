@@ -64,40 +64,75 @@ creating_plots <- function(listofdf, i) {
   #turning df into long df 
   df2 <- pivot_longer(df, cols = -time, names_to = "variable", values_to = "value")
   
-  df_for_40000 <- df %>% mutate(cytolytic_scale_40000 = ((Cb+Ct)/(B_cells+Cb+Ct+T_cells+At+Br+Lt+Lt2+Lt3+Lt4+Lt5))* 40000) 
+  df_for_40000 <- df %>% mutate(cytolytic_scale_40000 = ((Cb+Ct)/(B_cells+Cb+Ct+T_cells+At+Br+Lt+Lt2+Lt3+Lt4+Lt5))* 40000, 
+                                cytolytic_scale_40000_cb = ((Cb)/(B_cells+Cb+Ct+T_cells+At+Br+Lt+Lt2+Lt3+Lt4+Lt5))* 40000, 
+                                cytolytic_scale_40000_ct = ((Ct)/(B_cells+Cb+Ct+T_cells+At+Br+Lt+Lt2+Lt3+Lt4+Lt5))* 40000) 
     
   df_for_ffe <- df %>% select(time,If)  
   
   # #plot for all components 
   everything <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() +
-    scale_color_manual(values = c("B_cells" = "black", "T_cells" = "red", "Cb"="green", "At" = "blue", "Lt5" = "purple",
-                                  "Ct" = "yellow", "Z" = "lightblue", "Br" = "orange", "f" = "magenta", "If" = "pink",
-                                  "Lt2" = "chartreuse", "Lt3" = "chartreuse", "Lt4" = "chartreuse")) +
-    labs(title = "WithinHost Delay", color = "Cell Type") + theme(legend.position = "right") +
-    theme_minimal() + xlab(label = "Time (Days)") + ylab(label = "Cell Number") +
-    geom_point(data = baigent1998, aes(x = time/24, y = mean.pp38), inherit.aes = FALSE, color = "red") 
-
+    scale_color_manual(values = c("T_cells" = "red", "At" = "blue", "Lt5" = "purple",
+                                  "Z" = "lightblue", "Br" = "orange","Lt2" = "chartreuse", 
+                                  "Lt3" = "chartreuse", "Lt4" = "chartreuse", "Lt" = "chartreuse"), labels = c("T_cells" = "T cells")) +
+    labs(title = "Within-Host Model", color = "Cell Type") + theme(legend.position = "right") + xlab(label = "Time (days post infection)") + 
+    ylab(label = "Cell Number") + theme_classic() 
+  
   #plotting cytolytic data 
-  cytolytic_plot <- ggplot(df_for_40000, aes(x = time/24)) + 
-    geom_line(aes(y = cytolytic_scale_40000, color = "Cb+Ct")) +
-    scale_color_manual(
-      name = "cell type",
-      values = c("Cb" = "green", "Ct" = "red")
-    ) +
-    geom_point(data = baigent1998, aes(x = time/24, y = mean.pp38), color = "red", size = 0.3, inherit.aes = FALSE) +
+  cytolytic_plot <- ggplot(df_for_40000, aes(x = time/24)) +
+    geom_line(aes(y = cytolytic_scale_40000_cb, color = "Cb")) + 
+    geom_line(aes(y = cytolytic_scale_40000_ct, color = "Ct")) + 
+    scale_color_manual(name = "cell type",values = c("Ct" = "red", "Cb" = "green")) +
     # geom_point(data = baigent1998, aes(x = time/24, y = Bcell_no), color = "green",   size = 0.3, inherit.aes = FALSE) +
-    labs(x = "Time (days)", y = "pp38+ cells (out of 40,000)",
-         title = "Model vs observed pp38+ cells (average per bird)") +
-    theme_minimal() + ylim(0, 1000)
-  
-  
-  #plot for infected feather follicles  
-  FFE_plot <- ggplot(data = df_for_ffe, aes(x = time/24, y = If)) + geom_line( color = "pink") + 
-    geom_point(data = baigent2016, aes(x = time, y = mean_genomes), inherit.aes = FALSE, color = "red") + 
-    labs(title = "WithinHost Delay", color = "Cell Type")  + xlab(label = "Time (Days)") + 
-    ylab(label = "Cell Number")  +  scale_y_log10(limits = c(0.01, 10000000)) + 
+    labs(x = "Time (days post infection)", y = "Cytolytic cells", title = "Cytolytic Cells") +  ylim(0,500) + theme_classic()
+
+
+
+  #plot for infected feather follicles
+  FFE_plot <- ggplot(data = df_for_ffe, aes(x = time/24, y = If)) + geom_line( color = "pink")  +
+    labs(title = "WithinHost Delay", color = "Cell Type")  + xlab(label = "Time (Days)") +
+    ylab(label = "Cell Number")  +  scale_y_log10(limits = c(0.01, 1000000000000)) +
     theme(panel.grid = element_blank(), panel.background = element_blank(),   legend.text = element_text(size = 12),
-          legend.title = element_text(size = 12), axis.line = element_line(color = "black")) + labs( y = "Cell Number", x = "Time (Days)", title = "Infected Feather Follicle Epithelium") 
+          legend.title = element_text(size = 12), axis.line = element_line(color = "black")) +
+    labs( y = "Cell Number", x = "Time (days post infection)", title = "Infected Feather Follicle Epithelium") + 
+    theme_classic()
+
+
+  # cytolytic_plot <- ggplot(baigent1998, aes(x = time/24, y = mean.pp38)) +
+  #   geom_point(  color = "red",
+  #                size = 2.5,
+  #                alpha = 0.3) +
+  #   labs(x = "Time (dpi)", y = "pp38+ cells", title = "pp38+ cell data per 40000") +
+  #   theme_minimal() + theme(
+  #     axis.line = element_line(linewidth = 0.8),
+  #     axis.text = element_text(size = 12),
+  #     axis.title = element_text(size = 14)
+  #   ) + 
+  #   coord_cartesian(ylim = c(0, 1000))   # safer than ylim()
+  # 
+  # FFE_plot <- ggplot(baigent2016, aes(x = time, y = mean_genomes)) +
+  #   geom_line(color = "red", size = 1.5) + 
+  #   labs(title = "Feather Follicle Data")  + 
+  #   xlab(label = "Time (Days)") + 
+  #   ylab(label = "Mean RB-1B level (Genomes per 10^4)") + 
+  #   scale_y_log10(
+  #     limits = c(0.01, 10000000),
+  #     breaks = c(0.1,10,1000,100000,10000000), 
+  #     labels = label_comma(),
+  #     minor_breaks = scales::minor_breaks_log()
+  #   ) +
+  #   annotation_logticks(sides = "l") +
+  #   theme_classic() +
+  #   theme(
+  #     panel.grid = element_blank(),          # removes ALL grid lines
+  #     axis.line = element_line(color = "black"),
+  #     axis.ticks = element_line(color = "black"),
+  #     axis.ticks.length = unit(0.25, "cm")
+  #   ) +   scale_x_continuous(
+  #     limits = c(0, 40),
+  #     breaks = c(0, 10, 20, 30, 40),   # explicitly force 0 and 40
+  #     expand = c(0, 0)                # removes padding that can mess with edge ticks
+  #   ) + theme_classic()
   
   print(everything)
   print(cytolytic_plot) 
@@ -151,12 +186,12 @@ time_values <- seq(0, 1080) # hours
 
 
 ### DATA FOR PLOT ### 
-baigent2016 <- read_xlsx("baigent2016.xlsx", 2 ) 
-baigent1998 <- read_xlsx("baigent1998.xlsx", 3 ) %>% 
+baigent2016 <- read_xlsx("/Users/rayanhg/Desktop/WithinHostModel/WithinHostModel/baigent2016.xlsx", 2 ) 
+baigent1998 <- read_xlsx("/Users/rayanhg/Desktop/WithinHostModel/WithinHostModel/baigent1998.xlsx", 3 ) %>% 
   mutate(mean.pp38 = as.numeric(mean.pp38),
          Bcell_no = as.numeric(Bcell_no), 
          Tcell_no = as.numeric(Tcell_no)) %>% filter(!is.na(mean.pp38))   
-optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.12.26.weightedLikelihood.csv") %>% 
+optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.17.26.FittingDnbinom_Run2_ALL.csv") %>% 
   filter(Converged == 0) %>% slice_min(Likely, n = 10) %>% select(c(beta, beta_2, alpha, alpha_2,nu_a,nu_b,nu_f,mu,g1,g2,h1,h2,Pb)) 
 
 
@@ -165,7 +200,7 @@ list_of_df <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   parameter_vector(dat = optim_data, i = i)
   }) 
 
- pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.12.26.weightedLikelihood.pdf", width = 7, height = 5)
+ pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/3.3.26.VirologyPresentation.pdf", width = 7, height = 5)
 
  generating_plots <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
  creating_plots(listofdf = list_of_df, i = i)
