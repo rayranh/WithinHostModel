@@ -51,7 +51,9 @@ Likelihood_parts <- function(params){
   pars["nu_a"] <- exp(pars["nu_a"])
   pars["nu_b"] <- exp(pars["nu_b"]) 
   pars["nu_f"] <- exp(pars["nu_f"])
-  pars["Pb"] <- plogis(pars["Pb"]) 
+  pars["Pb"] <- plogis(pars["Pb"])  
+  pars["size_pp38"] <- exp(pars["size_pp38"]) 
+  pars["size_pp38_Ct"] <- exp(pars["size_pp38_Ct"])  
   
   
   
@@ -73,7 +75,9 @@ Likelihood_parts <- function(params){
     dplyr::select(B_cells, Cb,Br, Ct, T_cells, At, Lt, Lt2, Lt3, Lt4, Lt5, time) %>% 
     mutate(
       prob_Cyto = (Cb + Ct) / (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5),
-      inf_cells = ((Cb + Ct) / (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5))*40000 # getting rid of Lt because Lt is not even present at this time point
+      inf_cells = ((Cb + Ct) / (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5))*40000,
+      inf_cells_Cb = ((Cb) / (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5))*40000,  
+      inf_cells_Ct = ((Ct) / (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5))*40000# getting rid of Lt because Lt is not even present at this time point
     ) %>% filter(time %in% obs_hourspp38) 
   
   # baigent2016 times are in days; matched_time is hours 
@@ -89,15 +93,21 @@ Likelihood_parts <- function(params){
     left_join(Infected_FFE, by = "time")  # brings in If
   
   
-  pp38_dbinom <- pp38_dat %>% filter(time %in% obs_hourspp38) %>% 
-    left_join(infprob %>% select(time, inf_cells), by = "time") %>% group_by(time) %>%
-    mutate(variance = sd(mean.pp38)^2, r= (inf_cells^2)/(variance-inf_cells), p = (inf_cells/variance)) 
   
-  loglike_pp38 <- dnbinom(pp38_dbinom$mean.pp38,
-                          size = pp38_dbinom$r, prob = pp38_dbinom$p,  log = TRUE)
-  #loglike_pp38 <- dbinom(pp38_dbinom$mean.pp38, prob = pp38_dbinom$prob_Cyto, size = 40000, log = TRUE) 
+  pp38_dbinom_Cb <- pp38_dat %>% filter(time %in% obs_hourspp38) %>% 
+    left_join(infprob %>% select(time, inf_cells_Cb), by = "time") 
   
-  sum_loglike_pp38 <- sum(loglike_pp38)
+  pp38_dbinom_Ct <- pp38_dat %>% filter(time %in% obs_hourspp38) %>% 
+    left_join(infprob %>% select(time, inf_cells_Ct), by = "time") 
+  
+  loglike_pp38 <- dnbinom(pp38_dbinom_Cb$Bcell_no,# from data, observed 
+                          size = pars["size_pp38"], prob = pars["size_pp38"]/(pars["size_pp38"]+pp38_dbinom_Cb$inf_cells_Cb),  log = TRUE) # cytolytic cells from model 
+
+  loglike_pp38_Ct <- dnbinom(pp38_dbinom_Ct$Tcell_no,# from data, observed 
+                          size = pars["size_pp38_Ct"], prob = pars["size_pp38_Ct"]/(pars["size_pp38_Ct"]+pp38_dbinom_Ct$inf_cells_Ct),  log = TRUE) # cytolytic cells from model 
+  
+    
+  sum_loglike_pp38 <- sum(loglike_pp38) + sum(loglike_pp38_Ct)
   
   
   loglike_ffe <- dnorm(
@@ -129,16 +139,18 @@ Likelihood <- function(params){
 parameter_intervals <- list( beta_2 = log(c(1e-14,1e-9)), 
                              beta = log(c(1e-14, 1e-9)), 
                              alpha_2 =log(c(0.0104, 0.041)), 
-                             # g1 = c(10,1000),
-                             # g2 = c(1,1000),
-                             # h1 = c(10,1000), 
-                             # h2 = c(1,1000),  
+                             g1 = c(10,1000),
+                             g2 = c(1,1000),
+                             h1 = c(10,1000),
+                             h2 = c(1,1000),
                              nu_a = log(c(0.013,0.4)),             #Activation rate of T cells by cytolytic B cells (hours)
                              nu_b = log(c(0.013,0.4)),            #Activation rate of T cells by cytolytic T cells (hours)
                              alpha = log(c(0.0104,0.041)),  
-                             mu = c(0.01388889, 0.05), 
+                             # mu = c(0.01388889, 0.05), 
                              nu_f = log(c(0.005952381, 0.0104)), 
-                             Pb = qlogis(c(0.001, 0.05))) #taken from baigent pp38 data 
+                             Pb = qlogis(c(0.001, 0.05)),
+                             size_pp38 = log(c(0.05,10)),
+                             size_pp38_Ct = log(c(0.05,10)))  #taken from baigent pp38 data 
 
 
 ## PARAMETERS AND INITIAL VALUES ## 
@@ -149,15 +161,17 @@ parameters_values <- c(
   , nu_a = log(4.668718e-01)             #Activation rate of T cells by cytolytic B cells (hours)
   , nu_b = log(4.467098e-01)             #Activation rate of T cells by cytolytic T cells (hours)
   , nu_f = log(0.008)                    #Infection rate of follicular cells (hours)
-  , mu = 0.02                       #Rate of Tumor Cells (every 72 hours)
+  , mu = 1/8                       #Rate of Tumor Cells (every 72 hours)
   , alpha = log(0.0104)             #death rate of cytolytic B cells (every 33 hours)
   , alpha_2 = log(0.0104)           #death rate of cytolytic T cells (every 48 hours)
   , theta = 0.8                     #population of activated T cells 
-  , g1 = 0                       #incoming B cells (every 15 hours)
+  , g1 = 10                      #incoming B cells (every 15 hours)
   , g2 = 100    
-  , h1 =0                      #incoming T cells / determined no incoming T cells 
+  , h1 = 10                      #incoming T cells / determined no incoming T cells 
   , h2 = 100
-  , lambda = 0.02380952             # fixing delay rate to (1/(7*24))*4  
+  , lambda = 0.02380952             # fixing delay rate to (1/(7*24))*4   
+  , size_pp38 = log(10)   # new parameter 
+  , size_pp38_Ct = log(10)
 )
 
 
@@ -190,8 +204,8 @@ obs_hourspp38 <- c(72,96,120,144) # make sure pp38 times is matching the data lo
 
 ## DATA ##  
 #cytolytic infection at a given time of B and T cells in Spleen, Thymus, Bursa 
-pp38_dat <- read_xlsx("~/scratch/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, mean.pp38)
-baigent2016 <- read_xlsx("~/scratch/baigent2016.xlsx", 2 ) %>% arrange(time)
+pp38_dat <- read_xlsx("~/work/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, Bcell_no,Tcell_no)
+baigent2016 <- read_xlsx("~/work/baigent2016.xlsx", 2 ) %>% arrange(time)
 
 
 #generate random parameters 
@@ -216,8 +230,8 @@ optim_for_alpha <- function() {
     answeroptim <- optim(
       par = starting_parms,
       fn  = Likelihood,
-      method = "SANN",
-      control = list(maxit = 1000, temp = 50, tmax = 10)
+      method = "Nelder-Mead",
+      control = list(maxit = 20000)
     ) 
     
     parts <- Likelihood_parts(answeroptim$par)
@@ -233,12 +247,14 @@ optim_for_alpha <- function() {
       nu_a     = exp(answeroptim$par["nu_a"]),
       nu_b     = exp(answeroptim$par["nu_b"]),
       nu_f     = exp(answeroptim$par["nu_f"]),
-      mu       = answeroptim$par["mu"],
-      # g1       = answeroptim$par["g1"],
-      # g2       = answeroptim$par["g2"],
-      # h1       = answeroptim$par["h1"],
-      # h2       = answeroptim$par["h2"],
-      Pb       = plogis(answeroptim$par["Pb"]),
+      mu       = parameters_values["mu"],
+      g1       = answeroptim$par["g1"],
+      g2       = answeroptim$par["g2"],
+      h1       = answeroptim$par["h1"],
+      h2       = answeroptim$par["h2"],
+      Pb       = plogis(answeroptim$par["Pb"]), 
+      size_pp38 = exp(answeroptim$par["size_pp38"]), 
+      size_pp38_Ct = exp(answeroptim$par["size_pp38_Ct"]), 
       Converged = answeroptim$convergence,
       ErrorMsg = NA_character_
     )
@@ -261,11 +277,13 @@ optim_for_alpha <- function() {
       nu_b     = NA_real_,
       nu_f     = NA_real_,
       mu       = NA_real_,
-      # g1       = NA_real_,
-      # g2       = NA_real_,
-      # h1       = NA_real_,
-      # h2       = NA_real_,
-      Pb       = NA_real_,
+      g1       = NA_real_,
+      g2       = NA_real_,
+      h1       = NA_real_,
+      h2       = NA_real_,
+      Pb       = NA_real_, 
+      size_pp38 = NA_real_,
+      size_pp38_Ct = NA_real_,
       Converged = NA_integer_,
       ErrorMsg = e$message
       
@@ -277,7 +295,7 @@ optim_for_alpha <- function() {
 
 
 #how many random parameter sets I want 
-n_per_alpha <-5
+n_per_alpha <-50
 
 library(future)
 library(future.apply)
@@ -289,7 +307,8 @@ workers <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
 plan(multisession, workers = workers)
 
 task <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1")) #took out sys.tim() as set seed because array can start at same second 
-set.seed(task) #generating seed based off task 
+seed <- as.integer(Sys.time()) + task
+set.seed(seed)
 
 results_list <- future_lapply(
   1:n_per_alpha,
@@ -297,10 +316,10 @@ results_list <- future_lapply(
   future.seed = TRUE
 ) 
 
-final_df <- bind_rows(results_list)
+final_df <- bind_rows(results_list) 
 
 
-out_file <- sprintf("~/work/Feb.28.26.TryingSANN_%03d.csv", task) #outputting separate files 
+out_file <- sprintf("~/work/3.9.26.FittingForVariance_%03d.csv", task) #outputting separate files 
 
 write.table(
   final_df,
