@@ -51,8 +51,9 @@ parameter_vector <- function(dat,i) {
         func = sir_equations, 
         parms = pars))   
   
-  df <- results %>% mutate(numInfCells = (Ct+Cb)/(Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5+B_cells+T_cells+Br)*40000) %>% 
-    filter(time %in% obs_hourspp38) %>% select(numInfCells, time) 
+  df <- results %>% mutate(numInfCells = (Cb)/(Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5+B_cells+T_cells+Br)*40000, 
+                           numInfCells_Ct = (Ct)/(Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5+B_cells+T_cells+Br)*40000) %>% 
+    filter(time %in% obs_hourspp38) %>% select(numInfCells,numInfCells_Ct, time) 
   
   
   #counting number of birds in each timepoint 
@@ -62,10 +63,18 @@ parameter_vector <- function(dat,i) {
   
   #attaching number of birds to each timepoint 
   cyto_df2 <- df %>% left_join(y = n_by_time, by = "time") %>% left_join(y = baigent1998, by = "time") %>% 
-    select(numInfCells, time,n_birds,mean.pp38) %>% group_by(time) %>% 
-    mutate(variance = sd(mean.pp38)^2,r= (numInfCells^2)/(variance-numInfCells), p = (numInfCells/variance)) %>% ungroup() # double check this is right 
-  
-  
+    select(numInfCells,numInfCells_Ct, time,n_birds) %>% group_by(time) %>% 
+    mutate(size_Cb = pars["size_pp38"], size_Ct = pars["size_pp38_Ct"]) %>% 
+    summarise(
+      numInfCells = first(numInfCells),
+      numInfCells_Ct = first(numInfCells_Ct),
+      size_Cb = first(size_Cb),
+      size_Ct = first(size_Ct),
+      .groups = "drop"
+    ) %>% 
+    ungroup() 
+
+
   return(cyto_df2)
 }  
 
@@ -114,7 +123,9 @@ parameters_values <- c(
   , g2 = 100    
   , h1 =10                      #incoming T cells / determined no incoming T cells 
   , h2 = 100
-  , lambda =0.02380952                  #adding delay, how long latent cell 'exposed' 
+  , lambda =0.02380952                  #adding delay, how long latent cell 'exposed'  
+  , size_pp38 = log(10)   # new parameter 
+  , size_pp38_Ct = log(10)
 )
 
 initial_values <- c( 
@@ -144,18 +155,19 @@ matched_time <- c(3,6,10,17,20,26,33,38)*24
 
 
 ### DATA FOR PLOT ### 
-baigent2016 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent2016.xlsx", 3) %>% mutate(time = time*24)
+baigent2016 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent2016.xlsx", 2) %>% mutate(time = time*24)
 baigent1998 <- read_xlsx("~/Desktop/WithinHostModel/WithinHostModel/baigent1998.xlsx", 3 ) %>% 
   mutate(mean.pp38 = as.numeric(mean.pp38),
          Bcell_no = as.numeric(Bcell_no), 
          Tcell_no = as.numeric(Tcell_no)) %>% filter(!is.na(mean.pp38))   
-optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.17.26.FittingDnbinom_Run2_ALL.csv") %>% 
+optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FittingForVariance_ALL.csv") %>% 
   filter(Converged == 0) %>% slice_min(Likely,n = 1) %>%  
-  select(c(beta, beta_2, alpha, alpha_2,nu_a,nu_b,nu_f,mu,g1,g2,h1,h2,Pb)) 
+  select(c(beta, beta_2, alpha, alpha_2,nu_a,nu_b,nu_f,mu,g1,g2,h1,h2,Pb, size_pp38, size_pp38_Ct)) 
 
 # OneDf <- parameter_vector(dat = optim_data, 1) 
 
 OneDf_all <- map_df(1:nrow(optim_data), ~ parameter_vector(optim_data, .x))
+
 # OneDfFFe <- parameter_vector_FFE(dat = optim_data, 1)
 OneDf_FFE_all <- map_df(1:nrow(optim_data), ~ parameter_vector_FFE(optim_data, .x)) 
  
@@ -163,9 +175,10 @@ OneDf_FFE_all <- map_df(1:nrow(optim_data), ~ parameter_vector_FFE(optim_data, .
  
  sim_df <- purrr::map_df(1:10000,
    function(rep_id) { 
-     OneDf_all %>% transmute(replicate = rep_id, 
-                         time = time, 
-                         pp38_sim = rnbinom(n(), size = r, mu = numInfCells))
+     OneDf_all %>% 
+       transmute(time = time, 
+                 pp38_sim_Cb = rnbinom(n(), size = size_Cb , mu = numInfCells),
+                 pp38_sim_Ct = rnbinom(n(), size = size_Ct , mu = numInfCells_Ct))
      })
 
  
@@ -189,9 +202,14 @@ OneDf_FFE_all <- map_df(1:nrow(optim_data), ~ parameter_vector_FFE(optim_data, .
  
  sim_df_median <- sim_df %>%
    group_by(time) %>%
-   summarise(med = median(pp38_sim),
-             low = quantile(pp38_sim, 0.025), 
-             high = quantile(pp38_sim, 0.975), 
+   summarise(med_Cb = median(pp38_sim_Cb), 
+             mean_Cb = mean(pp38_sim_Cb),
+             low_Cb = quantile(pp38_sim_Cb, 0.025), 
+             high_Cb = quantile(pp38_sim_Cb, 0.975), 
+             med_Ct = median(pp38_sim_Ct), 
+             mean_Ct = mean(pp38_sim_Ct),
+             low_Ct = quantile(pp38_sim_Ct, 0.025), 
+             high_Ct = quantile(pp38_sim_Ct, 0.975), 
              .groups = "drop") 
  
  sim_FFE_median <- sim_df_FFE %>% 
@@ -237,10 +255,13 @@ OneDf_FFE_all <- map_df(1:nrow(optim_data), ~ parameter_vector_FFE(optim_data, .
  #5000 takes 60 sec to run 
 
  
-p <- ggplot(sim_df_median, aes(x = time/24)) + geom_line(aes(y = med, colour = "model")) + 
-  geom_ribbon(aes(ymin = low, ymax = high), fill = "grey80", alpha = 0.5) + 
-  xlim(0,10) + geom_point(data = baigent1998, aes(x = time/24, y = mean.pp38, color = "data"), inherit.aes = FALSE) + 
-  scale_color_manual(values = c("model" = "black", "data" = "red")) +  ylim(0,500) + 
+p <- ggplot(sim_df_median, aes(x = time/24)) + geom_line(aes(y = mean_Cb, colour = "model B cells")) +  
+  geom_line(aes(y = mean_Ct, colour = "model T cells")) + 
+  geom_ribbon(aes(ymin = low_Cb, ymax = high_Cb), fill = "grey80", alpha = 0.5) + 
+  geom_ribbon(aes(ymin = low_Ct, ymax = high_Ct), fill = "green", alpha = 0.5) + 
+  xlim(0,10) + geom_point(data = baigent1998, aes(x = time/24, y = Bcell_no, color = "data B cells"), inherit.aes = FALSE) + 
+  geom_point(data = baigent1998, aes(x = time/24, y = Tcell_no, color = "data T cells"), inherit.aes = FALSE) + 
+  scale_color_manual(values = c("model B cells" = "black", "data B cells" = "red" , "data T cells" = "green", "model T cells" = "darkgreen")) + 
   labs(title = "Data Generated from Model", x = "time(days post infection)", y = "# of Infected Cells") + 
   theme(panel.grid = element_blank()) + 
   theme_classic()
@@ -255,7 +276,7 @@ p2 <- ggplot(sim_FFE_median, aes(x = time/24))  + geom_line(aes(y = med, colour 
   geom_ribbon(aes(ymin = low, ymax = high), fill = "grey80", alpha = 0.5) + 
   scale_y_log10(limits = c(0.0000001, 1000000000)) +
   geom_point(data = baigent2016, aes(x = time/24, y = mean_genomes, color = "data"), inherit.aes = FALSE)+  
-  geom_errorbar(data = baigent2016, aes(ymin = lower.conf, ymax = upper.conf, color = "data")) + 
+  # geom_errorbar(data = baigent2016, aes(ymin = lower.conf, ymax = upper.conf, color = "data")) + 
   xlim(0,40)+scale_color_manual(values = c("model" = "black", "data" = "red"))  + 
   labs(title = "Data Generated from Model ", x = "time(days post infection)", y = "Mean Number of MDV Genomes") + 
   theme(panel.grid = element_blank()) + 
