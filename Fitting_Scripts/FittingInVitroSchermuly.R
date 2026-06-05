@@ -37,6 +37,10 @@ summary(fit_Tcells)
 same <- lm(log10(MDV_load) ~ CellType + time, data = CellsCombined)
 different <- lm(log10(MDV_load) ~ CellType * time, data = CellsCombined)
 
+
+
+
+
 simple <- logLik(same)
 complicated <- logLik(different) 
 
@@ -45,7 +49,6 @@ lrtest(same, different)
 
 LR <- 2*(complicated - simple ) 
 complicated/simple
-
 
 pchisq(3.3457, df = 1, lower.tail = FALSE)
 

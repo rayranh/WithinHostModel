@@ -11,7 +11,7 @@ library(readxl)
 library(purrr)  
 library(future) 
 library(future.apply) 
-setwd("~/Desktop/WithinHostModel/DataForProject/")
+# setwd("~/Desktop/WithinHostModel/DataForProject/")
 
 start_time <- Sys.time()
 
@@ -100,7 +100,7 @@ Likelihood_parts <- function(params){
   loglike_pp38_Ct <- dnbinom(pp38_dbinom_Ct$Tcell_no,# from data, observed 
                              size = pars["size_pp38_Ct"], prob = pars["size_pp38_Ct"]/(pars["size_pp38_Ct"]+pp38_dbinom_Ct$inf_cells_Ct),  log = TRUE) # cytolytic cells from model 
   
-   
+  
   sum_loglike_pp38 <- sum(loglike_pp38) + sum(loglike_pp38_Ct) 
   
   
@@ -131,19 +131,19 @@ Likelihood <- function(params){
 #create intervals for numbers 
 
 parameter_intervals <- list(beta = log(c(1e-14, 1e-5)), 
-                             alpha_2 =log(c(0.0104, 0.041)), 
-                             g1 = c(10,1000),
-                             g2 = c(1,1000),
-                             h1 = c(10,1000),
-                             h2 = c(1,1000),
-                             nu_a = log(c(0.013,0.4)),             #Activation rate of T cells by cytolytic B cells (hours)
-                             nu_b = log(c(0.013,0.4)),            #Activation rate of T cells by cytolytic T cells (hours)
-                             alpha = log(c(0.0104,0.041)),  
-                             # mu = c(0.01388889, 0.05), 
-                             nu_f = log(c(0.005952381, 0.0104)), 
-                             Pb = qlogis(c(0.001, 0.05)),
-                             size_pp38 = log(c(0.05,10)),
-                             size_pp38_Ct = log(c(0.05,10)))  #taken from baigent pp38 data 
+                            alpha_2 =log(c(0.0104, 0.041)), 
+                            g1 = c(10,1000),
+                            g2 = c(1,1000),
+                            h1 = c(10,1000),
+                            h2 = c(1,1000),
+                            nu_a = log(c(0.013,0.4)),             #Activation rate of T cells by cytolytic B cells (hours)
+                            nu_b = log(c(0.013,0.4)),            #Activation rate of T cells by cytolytic T cells (hours)
+                            alpha = log(c(0.0104,0.041)),  
+                            # mu = c(0.01388889, 0.05), 
+                            nu_f = log(c(0.005952381, 0.0104)), 
+                            Pb = qlogis(c(0.001, 0.05)),
+                            size_pp38 = log(c(0.05,10)),
+                            size_pp38_Ct = log(c(0.05,10)))  #taken from baigent pp38 data 
 
 
 ## PARAMETERS AND INITIAL VALUES ## 
@@ -196,8 +196,8 @@ obs_hourspp38 <- c(72,96,120,144) # make sure pp38 times is matching the data lo
 
 ## DATA ##  
 #cytolytic infection at a given time of B and T cells in Spleen, Thymus, Bursa 
-pp38_dat <- read_xlsx("Baigent1998/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, Bcell_no,Tcell_no)
-baigent2016 <- read_xlsx("Baigent2016/Unvax/feathers_noVax_SE.xlsx") 
+pp38_dat <- read_xlsx("~/work/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, Bcell_no,Tcell_no)
+baigent2016 <- read_xlsx("~/work/feathers_noVax_SE.xlsx") 
 
 
 #generate random parameters 
@@ -285,7 +285,7 @@ optim_for_alpha <- function() {
 
 
 #how many random parameter sets I want 
-n_per_alpha <-5
+n_per_alpha <-10
 
 
 results_list <- lapply(
@@ -297,39 +297,37 @@ results_list <- lapply(
 )
 
 
-# library(future)
-# library(future.apply)
-# library(dplyr)
+library(future)
+library(future.apply)
+library(dplyr)
 
 # get number of CPUs Slurm gave us
-# workers <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
-# 
-# plan(multisession, workers = workers)
-# 
-# task <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1")) #took out sys.tim() as set seed because array can start at same second 
-# seed <- as.integer(Sys.time()) + task
-# set.seed(seed)
-# 
-# results_list <- future_lapply(
-#   1:n_per_alpha,
-#   function(i) optim_for_alpha(),
-#   future.seed = TRUE
-# ) 
+workers <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
+plan(multisession, workers = workers)
+task <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1")) #took out sys.tim() as set seed because array can start at same second
+seed <- as.integer(Sys.time()) + task
+set.seed(seed)
+
+results_list <- future_lapply(
+  1:n_per_alpha,
+  function(i) optim_for_alpha(),
+  future.seed = TRUE
+)
 
 final_df <- bind_rows(results_list) 
 
 
-# out_file <- sprintf("~/work/3.9.26.FittingForVariance_%03d.csv", task) #outputting separate files 
-# 
-# write.table(
-#   final_df,
-#   file = out_file,
-#   sep = ",",
-#   row.names = FALSE,
-#   col.names = TRUE,
-#   append = FALSE
-# )
-# 
+out_file <- sprintf("~/work/Jun.4.26.FittingMDVModelCluster_%03d.csv", task) #outputting separate files
+
+write.table(
+  final_df,
+  file = out_file,
+  sep = ",",
+  row.names = FALSE,
+  col.names = TRUE,
+  append = FALSE
+)
+
 
 
 end_time <- Sys.time() - start_time
