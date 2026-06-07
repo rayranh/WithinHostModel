@@ -21,8 +21,8 @@ sir_equations <- function(time, variables, parameters) {
     dB <-  -beta*Cb*B_cells - beta*Ct*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
     dBr <- (1-Pb)*(g1*(Cb+Ct)/(g2+(Cb+Ct))) #probably should have alpha for cytolytic infection 
     dCb <- beta*Cb*B_cells + beta*Ct*B_cells - alpha*Cb 
-    dT <- -nu_a*Cb*T_cells - nu_b*Ct*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
-    dAt <- nu_a*Cb*T_cells + nu_b*Ct*T_cells - beta*Ct*At - beta*Cb*At  # beta = rate of activated T cells by Ct and Cb cells   
+    dT <- -nu_a*Cb*T_cells - nu_a*Ct*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
+    dAt <- nu_a*Cb*T_cells + nu_a*Ct*T_cells - beta*Ct*At - beta*Cb*At  # beta = rate of activated T cells by Ct and Cb cells   
     dLt <- theta *(beta*Ct*At + beta*Cb*At)  - lambda*Lt 
     dLt2 <- lambda*Lt - lambda*Lt2 
     dLt3 <- lambda*Lt2 - lambda*Lt3 
@@ -48,7 +48,6 @@ Likelihood_parts <- function(params){
   pars["alpha"]   <- exp(pars["alpha"])
   pars["alpha_2"] <- exp(pars["alpha_2"])  
   pars["nu_a"] <- exp(pars["nu_a"])
-  pars["nu_b"] <- exp(pars["nu_b"]) 
   pars["nu_f"] <- exp(pars["nu_f"])
   pars["Pb"] <- plogis(pars["Pb"])  
   pars["size_pp38"] <- exp(pars["size_pp38"]) 
@@ -136,8 +135,7 @@ parameter_intervals <- list(beta = log(c(1e-14, 1e-5)),
                             g2 = c(1,1000),
                             h1 = c(10,1000),
                             h2 = c(1,1000),
-                            nu_a = log(c(0.013,0.4)),             #Activation rate of T cells by cytolytic B cells (hours)
-                            nu_b = log(c(0.013,0.4)),            #Activation rate of T cells by cytolytic T cells (hours)
+                            nu_a = log(c(1/30,1/6)),             #Activation rate of T cells by cytolytic B cells (hours)
                             alpha = log(c(0.0104,0.041)),  
                             # mu = c(0.01388889, 0.05), 
                             nu_f = log(c(0.005952381, 0.0104)), 
@@ -150,8 +148,7 @@ parameter_intervals <- list(beta = log(c(1e-14, 1e-5)),
 parameters_values <- c( 
   beta =  log(6.951463e-07)                  #contact rate with B cells  
   , Pb = qlogis(0.005) 
-  , nu_a = log(4.668718e-01)             #Activation rate of T cells by cytolytic B cells (hours)
-  , nu_b = log(4.467098e-01)             #Activation rate of T cells by cytolytic T cells (hours)
+  , nu_a = log(1/6)             #Activation rate of T cells by cytolytic B cells (hours)
   , nu_f = log(0.008)                    #Infection rate of follicular cells (hours)
   , mu = 1/8                       #Rate of Tumor Cells (every 72 hours)
   , alpha = log(0.0104)             #death rate of cytolytic B cells (every 33 hours)
@@ -236,7 +233,6 @@ optim_for_alpha <- function() {
       alpha    = exp(answeroptim$par["alpha"]),
       alpha_2  = exp(answeroptim$par["alpha_2"]),
       nu_a     = exp(answeroptim$par["nu_a"]),
-      nu_b     = exp(answeroptim$par["nu_b"]),
       nu_f     = exp(answeroptim$par["nu_f"]),
       mu       = parameters_values["mu"],
       g1       = answeroptim$par["g1"],
@@ -264,7 +260,6 @@ optim_for_alpha <- function() {
       alpha    = NA_real_,
       alpha_2  = NA_real_,
       nu_a     = NA_real_,
-      nu_b     = NA_real_,
       nu_f     = NA_real_,
       mu       = NA_real_,
       g1       = NA_real_,
@@ -286,15 +281,6 @@ optim_for_alpha <- function() {
 
 #how many random parameter sets I want 
 n_per_alpha <-10
-
-
-results_list <- lapply(
-  1:n_per_alpha,
-  function(i) {
-    message("Running fit ", i, " of ", n_per_alpha)
-    optim_for_alpha()
-  }
-)
 
 
 library(future)
