@@ -72,12 +72,12 @@ creating_plots <- function(listofdf, i) {
   
   # #plot for all components 
   everything <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() +
-    scale_color_manual(values = c("T_cells" = "red", "At" = "blue", "Lt5" = "purple",
+    scale_color_manual(values = c("T_cells" = "red", "At" = "blue", "Lt5" = "purple", "B_cells" = "black", 
                                   "Z" = "lightblue", "Br" = "orange","Lt2" = "chartreuse", 
                                   "Lt3" = "chartreuse", "Lt4" = "chartreuse", "Lt" = "chartreuse"), labels = c("T_cells" = "T cells")) +
     labs(title = "Within-Host Model", color = "Cell Type") + theme(legend.position = "right") + xlab(label = "Time (days post infection)") + 
     ylab(label = "Cell Number") + theme_classic() 
-  
+
   #plotting cytolytic data 
   cytolytic_plot <- ggplot(df_for_40000, aes(x = time/24)) +
     geom_line(aes(y = cytolytic_scale_40000_cb, color = "Cb")) + 
@@ -191,7 +191,7 @@ baigent1998 <- read_xlsx("/Users/rayanhg/Desktop/WithinHostModel/WithinHostModel
   mutate(mean.pp38 = as.numeric(mean.pp38),
          Bcell_no = as.numeric(Bcell_no), 
          Tcell_no = as.numeric(Tcell_no)) %>% filter(!is.na(mean.pp38))   
-optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Feb.17.26.FittingDnbinom_Run2_ALL.csv") %>% 
+optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FittingForVariance_ALL.csv") %>% 
   filter(Converged == 0) %>% slice_min(Likely, n = 10) %>% select(c(beta, beta_2, alpha, alpha_2,nu_a,nu_b,nu_f,mu,g1,g2,h1,h2,Pb)) 
 
 
@@ -200,7 +200,7 @@ list_of_df <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   parameter_vector(dat = optim_data, i = i)
   }) 
 
- pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/3.3.26.VirologyPresentation.pdf", width = 7, height = 5)
+ pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/3.9.FittedSize.pdf", width = 7, height = 5)
 
  generating_plots <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
  creating_plots(listofdf = list_of_df, i = i)
