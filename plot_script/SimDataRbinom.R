@@ -87,7 +87,7 @@ parameter_vector_FFE <- function(dat,i) {
   
 
   df_FFE <- results %>% filter(time
-                               %in% matched_time) %>% mutate(If_per10k = (If/(If+f)) *10000) %>% 
+                               %in% matched_time) %>% mutate(If_per10k = pars["q_FFE"] * (If/(If+f)) *10000) %>% 
   select(time, If_per10k) %>% left_join(baigent2016, by = "time")
  
   
@@ -138,7 +138,9 @@ parameters_values <- c(
   , h2 = 100
   , lambda =0.02380952                  #adding delay, how long latent cell 'exposed'  
   , size_pp38 = log(10)   # new parameter 
-  , size_pp38_Ct = log(10)
+  , size_pp38_Ct = log(10) 
+  , q_FFE = log(1000)
+
 )
 
 initial_values <- c( 
@@ -173,9 +175,9 @@ baigent2016 <- read_xlsx("Baigent2016/Unvax/feathers_noVax_SE.xlsx") %>%
 
 baigent1998 <- read_xlsx("Baigent1998/baigent1998Totalpp38.xlsx" )
 baigent2016PBL <- read_xlsx("Baigent2016/Unvax/PBL_noVax_SE.xlsx")
-optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/Jun.4.26.FittingMDVModelClusterFixedPP38.csv") %>% 
-  filter(Converged == 0) %>% slice_min(Likely,n = 10) %>%  
-  select(c(beta,  alpha, alpha_2,nu_a,nu_f,mu,Pb, size_pp38, size_pp38_Ct))  
+optim_data <- read.csv("ScalingParamTestFeathers") %>% 
+  filter(Converged == 0) %>% slice_min(Likely,n = 1) %>%  
+  select(c(beta,  alpha, alpha_2,nu_a,nu_f,mu,Pb, size_pp38, size_pp38_Ct, q_FFE))  
 
 
 
