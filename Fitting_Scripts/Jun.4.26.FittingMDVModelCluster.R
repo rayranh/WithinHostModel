@@ -1,6 +1,6 @@
 #Using this code to generate random numbers for ALL parameters not keeping alpha, beta, stagnant 
 
-rm(list = ls())
+#rm(list = ls())
 library(dplyr) 
 library(tibble)
 library(deSolve)  
@@ -40,7 +40,7 @@ sir_equations <- function(time, variables, parameters) {
 Likelihood_parts <- function(params){   
   pars <- parameters_values 
   init <- initial_values 
-  B0 <-2.4e9/3 
+  B0 <-2.4e9/3
   
   pars[names(params)] <- params  
   pars["beta"]   <- exp(pars["beta"])
@@ -92,10 +92,10 @@ Likelihood_parts <- function(params){
   pp38_dbinom_Ct <- pp38_dat %>% filter(time %in% obs_hourspp38) %>% 
     left_join(infprob %>% select(time, inf_cells_Ct), by = "time") 
   
-  loglike_pp38 <- dnbinom(pp38_dbinom_Cb$Bcell_no,# from data, observed 
+  loglike_pp38 <- dnbinom(pp38_dbinom_Cb$pp38BcellTotal,# from data, observed 
                           size = pars["size_pp38"], prob = pars["size_pp38"]/(pars["size_pp38"]+pp38_dbinom_Cb$inf_cells_Cb),  log = TRUE) # cytolytic cells from model 
   
-  loglike_pp38_Ct <- dnbinom(pp38_dbinom_Ct$Tcell_no,# from data, observed 
+  loglike_pp38_Ct <- dnbinom(pp38_dbinom_Ct$pp38TcellTotal,# from data, observed 
                              size = pars["size_pp38_Ct"], prob = pars["size_pp38_Ct"]/(pars["size_pp38_Ct"]+pp38_dbinom_Ct$inf_cells_Ct),  log = TRUE) # cytolytic cells from model 
   
   
@@ -123,7 +123,11 @@ Likelihood_parts <- function(params){
     sd = 0.365, 
     log = TRUE) 
   
-  sumloglike_pbl <- sum(loglike_pbl)
+  sumloglike_pbl <- sum(loglike_pbl) 
+  
+  
+  ### FOR SPATZ 2007 ask about Data #### 
+  
   
   
   LogLHoodStor <- sum_loglike_ffe + sum_loglike_pp38 + sumloglike_pbl
@@ -132,7 +136,6 @@ Likelihood_parts <- function(params){
        neg_sum_loglike_ffe = -sum_loglike_ffe, 
        neg_sum_loglike_pp38 =  -sum_loglike_pp38, 
        neg_sum_loglike_pbl = -sumloglike_pbl)
-  
 } 
 
 
@@ -142,14 +145,13 @@ Likelihood <- function(params){
   Likelihood_parts(params)$neg_LogLHoodStor
 }
 
-#create intervals for numbers 
 parameter_intervals <- list(beta = log(c(1e-14, 1e-5)), 
                             alpha_2 =log(c(0.0104, 0.041)), 
-                            g1 = c(10,1000),
-                            g2 = c(1,1000),
-                            h1 = c(10,1000),
-                            h2 = c(1,1000),
-                            alpha = log(c(0.0034722,0.02)),  
+                            # g1 = c(10,1000),
+                            # g2 = c(1,1000),
+                            # h1 = c(10,1000),
+                            # h2 = c(1,1000),
+                            alpha = log(c(0.0034722,0.02)),  # dont say death rate 
                             # mu = c(0.01388889, 0.05), 
                             nu_f = log(c(0.005952381, 0.0104)), 
                             Pb = qlogis(c(0.001, 0.05)),
@@ -167,9 +169,9 @@ parameters_values <- c(
   , alpha = log(0.0104)             #death rate of cytolytic B cells (every 33 hours)
   , alpha_2 = log(0.0104)           #death rate of cytolytic T cells (every 48 hours)
   , theta = 0.8                     #population of activated T cells 
-  , g1 = 10                      #incoming B cells (every 15 hours)
+  , g1 = 0                    #incoming B cells (every 15 hours)
   , g2 = 100    
-  , h1 = 10                      #incoming T cells / determined no incoming T cells 
+  , h1 = 0                      #incoming T cells / determined no incoming T cells 
   , h2 = 100
   , lambda = 0.02380952             # fixing delay rate to (1/(7*24))*4   
   , size_pp38 = log(10)   # new parameter 
@@ -206,7 +208,7 @@ obs_hourspp38 <- c(72,96,120,144) # make sure pp38 times is matching the data lo
 
 ## DATA ##  
 #cytolytic infection at a given time of B and T cells in Spleen, Thymus, Bursa 
-pp38_dat <- read_xlsx("~/work/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, Bcell_no,Tcell_no)
+pp38_dat <- read_xlsx("~/work/baigent1998Totalpp38.xlsx") 
 baigent2016 <- read_xlsx("~/work/feathers_noVax_SE.xlsx") 
 baigentpbl2016 <- read_xlsx( "~/work//PBL_noVax_SE.xlsx")
 
@@ -250,10 +252,10 @@ optim_for_alpha <- function() {
       nu_a = exp(parameters_values["nu_a"]), 
       nu_f     = exp(answeroptim$par["nu_f"]),
       mu       = parameters_values["mu"],
-      g1       = answeroptim$par["g1"],
-      g2       = answeroptim$par["g2"],
-      h1       = answeroptim$par["h1"],
-      h2       = answeroptim$par["h2"],
+      # g1       = answeroptim$par["g1"],
+      # g2       = answeroptim$par["g2"],
+      # h1       = answeroptim$par["h1"],
+      # h2       = answeroptim$par["h2"],
       Pb       = plogis(answeroptim$par["Pb"]), 
       size_pp38 = exp(answeroptim$par["size_pp38"]), 
       size_pp38_Ct = exp(answeroptim$par["size_pp38_Ct"]), 
@@ -278,10 +280,10 @@ optim_for_alpha <- function() {
       nu_a     = NA_real_,
       nu_f     = NA_real_,
       mu       = NA_real_,
-      g1       = NA_real_,
-      g2       = NA_real_,
-      h1       = NA_real_,
-      h2       = NA_real_,
+      # g1       = NA_real_,
+      # g2       = NA_real_,
+      # h1       = NA_real_,
+      # h2       = NA_real_,
       Pb       = NA_real_, 
       size_pp38 = NA_real_,
       size_pp38_Ct = NA_real_,

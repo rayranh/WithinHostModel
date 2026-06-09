@@ -51,7 +51,8 @@ Likelihood_parts <- function(params){
   pars["nu_f"] <- exp(pars["nu_f"])
   pars["Pb"] <- plogis(pars["Pb"])  
   pars["size_pp38"] <- exp(pars["size_pp38"]) 
-  pars["size_pp38_Ct"] <- exp(pars["size_pp38_Ct"])  
+  pars["size_pp38_Ct"] <- exp(pars["size_pp38_Ct"])   
+  pars["q_FFE"] <- exp(pars["q_FFE"])
   
   
   
@@ -105,7 +106,7 @@ Likelihood_parts <- function(params){
   
   loglike_ffe <- dnorm(
     ffe_join$logged10Mean, #log10() here to match the log10 of the data and keep scale true
-    mean = log10(ffe_join$If_per10k),
+    mean = log10(pars["q_FFE"] * ffe_join$If_per10k),
     sd =  0.352, # Avg SE calculated from 17dpi onwards 
     log = TRUE # outer log is TRUE so it is returning ln() to keep consistent
   )   
@@ -160,7 +161,8 @@ parameter_intervals <- list(beta = log(c(1e-14, 1e-5)),
                              nu_f = log(c(0.005952381, 0.0104)), 
                              Pb = qlogis(c(0.001, 0.05)),
                              size_pp38 = log(c(0.05,10)),
-                             size_pp38_Ct = log(c(0.05,10)))  #taken from baigent pp38 data 
+                             size_pp38_Ct = log(c(0.05,10)),  #taken from baigent pp38 data  
+                             q_FFE = log(c(1, 1e6)) ) # scaling parameter  
 
 
 ## PARAMETERS AND INITIAL VALUES ## 
@@ -179,7 +181,8 @@ parameters_values <- c(
   , h2 = 100
   , lambda = 0.02380952             # fixing delay rate to (1/(7*24))*4   
   , size_pp38 = log(10)   # new parameter 
-  , size_pp38_Ct = log(10)
+  , size_pp38_Ct = log(10) 
+  , q_FFE = log(1000)
 )
 
 
@@ -263,7 +266,8 @@ optim_for_alpha <- function() {
       # h2       = answeroptim$par["h2"],
       Pb       = plogis(answeroptim$par["Pb"]), 
       size_pp38 = exp(answeroptim$par["size_pp38"]), 
-      size_pp38_Ct = exp(answeroptim$par["size_pp38_Ct"]), 
+      size_pp38_Ct = exp(answeroptim$par["size_pp38_Ct"]),  
+      q_FFE = exp(answeroptim$par["q_FFE"]),
       Converged = answeroptim$convergence,
       ErrorMsg = NA_character_
     )
@@ -291,7 +295,8 @@ optim_for_alpha <- function() {
       # h2       = NA_real_,
       Pb       = NA_real_, 
       size_pp38 = NA_real_,
-      size_pp38_Ct = NA_real_,
+      size_pp38_Ct = NA_real_, 
+      q_FFE = NA_real_, 
       Converged = NA_integer_,
       ErrorMsg = e$message
       
@@ -336,6 +341,7 @@ results_list <- lapply(
 
 final_df <- bind_rows(results_list) 
 
+write.csv(final_df, "/Users/rayanhg/Desktop/WithinHostModel/DataForProject/ScalingParamTestFeathers")
 
 # out_file <- sprintf("~/work/3.9.26.FittingForVariance_%03d.csv", task) #outputting separate files 
 # 
