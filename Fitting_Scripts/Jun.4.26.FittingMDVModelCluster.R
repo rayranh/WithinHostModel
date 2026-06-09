@@ -11,7 +11,7 @@ library(readxl)
 library(purrr)  
 library(future) 
 library(future.apply) 
-# setwd("~/Desktop/WithinHostModel/DataForProject/")
+#setwd("~/Desktop/WithinHostModel/DataForProject/")
 
 start_time <- Sys.time()
 
@@ -37,7 +37,6 @@ sir_equations <- function(time, variables, parameters) {
 }  
 
 #### LIKELIHOOD FUNCTION #### 
-
 Likelihood_parts <- function(params){   
   pars <- parameters_values 
   init <- initial_values 
@@ -79,12 +78,12 @@ Likelihood_parts <- function(params){
     ) %>% filter(time %in% obs_hourspp38) 
   
   #matching model time to feathers time 
-  Infected_FFE<- results %>% dplyr::select("time", "If") %>% 
-    filter(time %in% matched_time) %>% arrange(time)  
+  Infected_FFE<- results %>% dplyr::select("time", "If", "f") %>% 
+    filter(time %in% matched_time) %>% arrange(time) %>% mutate(If_per10k = (If/(If + f))*10000) 
   
   # join model predictions (If) to observed data by time
   ffe_join <- baigent2016 %>%
-    left_join(Infected_FFE, by = "time")  # brings in If
+    left_join(Infected_FFE, by = "time") 
   
   
   pp38_dbinom_Cb <- pp38_dat %>% filter(time %in% obs_hourspp38) %>% 
@@ -105,18 +104,34 @@ Likelihood_parts <- function(params){
   
   loglike_ffe <- dnorm(
     ffe_join$logged10Mean, #log10() here to match the log10 of the data and keep scale true
-    mean = log10(ffe_join$If),
+    mean = log10(ffe_join$If_per10k),
     sd =  0.352, # Avg SE calculated from 17dpi onwards 
     log = TRUE # outer log is TRUE so it is returning ln() to keep consistent
   )   
   
-  sum_loglike_ffe <- sum(loglike_ffe) 
+  sum_loglike_ffe <- sum(loglike_ffe)  
   
-  LogLHoodStor <- sum_loglike_ffe + sum_loglike_pp38
+  PBLModelInfection <- results %>% 
+    mutate(genomes_pbl = (Cb + Ct + Lt + Lt2 + Lt3 + Lt4 + Lt5)/(Cb+Ct+B_cells+T_cells+At+Lt+Lt2+Lt3+Lt4+Lt5+Br)*10000) %>%
+    filter(time %in% matched_time) %>% select(time,Cb, Ct, Lt, Lt2, Lt3, Lt4, Lt5, genomes_pbl)
+  
+  PBL_join <- baigentpbl2016 %>% left_join(PBLModelInfection, by = "time")
+  
+  loglike_pbl <- dnorm(
+    PBL_join$logged10Mean, 
+    mean = log10(PBL_join$genomes_pbl), 
+    sd = 0.365, 
+    log = TRUE) 
+  
+  sumloglike_pbl <- sum(loglike_pbl)
+  
+  
+  LogLHoodStor <- sum_loglike_ffe + sum_loglike_pp38 + sumloglike_pbl
   
   list(neg_LogLHoodStor = -LogLHoodStor,
        neg_sum_loglike_ffe = -sum_loglike_ffe, 
-       neg_sum_loglike_pp38 =  -sum_loglike_pp38)
+       neg_sum_loglike_pp38 =  -sum_loglike_pp38, 
+       neg_sum_loglike_pbl = -sumloglike_pbl)
   
 } 
 
@@ -128,15 +143,13 @@ Likelihood <- function(params){
 }
 
 #create intervals for numbers 
-
 parameter_intervals <- list(beta = log(c(1e-14, 1e-5)), 
                             alpha_2 =log(c(0.0104, 0.041)), 
                             g1 = c(10,1000),
                             g2 = c(1,1000),
                             h1 = c(10,1000),
                             h2 = c(1,1000),
-                            nu_a = log(c(1/30,1/6)),             #Activation rate of T cells by cytolytic B cells (hours)
-                            alpha = log(c(0.0104,0.041)),  
+                            alpha = log(c(0.0034722,0.02)),  
                             # mu = c(0.01388889, 0.05), 
                             nu_f = log(c(0.005952381, 0.0104)), 
                             Pb = qlogis(c(0.001, 0.05)),
@@ -148,7 +161,7 @@ parameter_intervals <- list(beta = log(c(1e-14, 1e-5)),
 parameters_values <- c( 
   beta =  log(6.951463e-07)                  #contact rate with B cells  
   , Pb = qlogis(0.005) 
-  , nu_a = log(1/6)             #Activation rate of T cells by cytolytic B cells (hours)
+  , nu_a = log( 0.1666667)             #Activation rate of T cells by cytolytic B cells (hours)
   , nu_f = log(0.008)                    #Infection rate of follicular cells (hours)
   , mu = 1/8                       #Rate of Tumor Cells (every 72 hours)
   , alpha = log(0.0104)             #death rate of cytolytic B cells (every 33 hours)
@@ -177,7 +190,7 @@ initial_values <- c(
   , Lt5 = 0 
   , Ct = 0
   , Z = 0
-  , f = 7e5 # (Calnek et al., 1970) range of 1.5e5 - 7e5  
+  , f = 4e5 # (Calnek et al., 1970) range of 1.5e5 - 7e5  
   , If =0 
   
 ) 
@@ -195,6 +208,7 @@ obs_hourspp38 <- c(72,96,120,144) # make sure pp38 times is matching the data lo
 #cytolytic infection at a given time of B and T cells in Spleen, Thymus, Bursa 
 pp38_dat <- read_xlsx("~/work/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, Bcell_no,Tcell_no)
 baigent2016 <- read_xlsx("~/work/feathers_noVax_SE.xlsx") 
+baigentpbl2016 <- read_xlsx( "~/work//PBL_noVax_SE.xlsx")
 
 
 #generate random parameters 
@@ -228,11 +242,12 @@ optim_for_alpha <- function() {
     tibble::tibble(
       Likely   = answeroptim$value, 
       Likely_pp38 = parts$neg_sum_loglike_pp38, 
-      Likely_ffe = parts$neg_sum_loglike_ffe, 
+      Likely_ffe = parts$neg_sum_loglike_ffe,  
+      Likely_pbl = parts$neg_sum_loglike_pbl,
       beta     = exp(answeroptim$par["beta"]),
       alpha    = exp(answeroptim$par["alpha"]),
-      alpha_2  = exp(answeroptim$par["alpha_2"]),
-      nu_a     = exp(answeroptim$par["nu_a"]),
+      alpha_2  = exp(answeroptim$par["alpha_2"]), 
+      nu_a = exp(parameters_values["nu_a"]), 
       nu_f     = exp(answeroptim$par["nu_f"]),
       mu       = parameters_values["mu"],
       g1       = answeroptim$par["g1"],
@@ -256,6 +271,7 @@ optim_for_alpha <- function() {
       Likely   = Inf, 
       Likely_pp38 = NA_real_,
       Likely_ffe  = NA_real_,
+      Likely_pbl = NA_real_,
       beta     = NA_real_,
       alpha    = NA_real_,
       alpha_2  = NA_real_,
@@ -275,6 +291,7 @@ optim_for_alpha <- function() {
     )
   })
 }
+
 
 
 
