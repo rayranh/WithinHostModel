@@ -52,7 +52,8 @@ Likelihood_parts <- function(params){
   pars["Pb"] <- plogis(pars["Pb"])  
   pars["size_pp38"] <- exp(pars["size_pp38"]) 
   pars["size_pp38_Ct"] <- exp(pars["size_pp38_Ct"])   
-  pars["q_FFE"] <- exp(pars["q_FFE"])
+  pars["q_FFE"] <- exp(pars["q_FFE"]) 
+  pars["q_PBL"] <- exp(pars["q_PBL"])
   
   
   
@@ -114,7 +115,7 @@ Likelihood_parts <- function(params){
   sum_loglike_ffe <- sum(loglike_ffe)  
   
   PBLModelInfection <- results %>% 
-    mutate(genomes_pbl = (Cb + Ct + Lt + Lt2 + Lt3 + Lt4 + Lt5)/(Cb+Ct+B_cells+T_cells+At+Lt+Lt2+Lt3+Lt4+Lt5+Br)*10000) %>%
+    mutate(genomes_pbl = pars["q_PBL"]*(Cb + Ct + Lt + Lt2 + Lt3 + Lt4 + Lt5)/(Cb+Ct+B_cells+T_cells+At+Lt+Lt2+Lt3+Lt4+Lt5+Br)*10000) %>%
     filter(time %in% matched_time) %>% select(time,Cb, Ct, Lt, Lt2, Lt3, Lt4, Lt5, genomes_pbl)
   
   PBL_join <- baigentpbl2016 %>% left_join(PBLModelInfection, by = "time")
@@ -161,9 +162,9 @@ parameter_intervals <- list(beta = log(c(1e-14, 1e-5)),
                              nu_f = log(c(0.005952381, 0.0104)), 
                              Pb = qlogis(c(0.001, 0.05)),
                              size_pp38 = log(c(0.05,10)),
-                             size_pp38_Ct = log(c(0.05,10)),  #taken from baigent pp38 data  
-                             q_FFE = log(c(1, 1e6)) ) # scaling parameter  
-
+                             size_pp38_Ct = log(c(0.05,10))  #taken from baigent pp38 data  
+                             # q_FFE = log(c(1, 1e6))  # scaling parameter  
+)
 
 ## PARAMETERS AND INITIAL VALUES ## 
 parameters_values <- c( 
@@ -182,7 +183,8 @@ parameters_values <- c(
   , lambda = 0.02380952             # fixing delay rate to (1/(7*24))*4   
   , size_pp38 = log(10)   # new parameter 
   , size_pp38_Ct = log(10) 
-  , q_FFE = log(1000)
+  , q_FFE = log(115) 
+  , q_PBL = log(115)
 )
 
 
@@ -267,7 +269,8 @@ optim_for_alpha <- function() {
       Pb       = plogis(answeroptim$par["Pb"]), 
       size_pp38 = exp(answeroptim$par["size_pp38"]), 
       size_pp38_Ct = exp(answeroptim$par["size_pp38_Ct"]),  
-      q_FFE = exp(answeroptim$par["q_FFE"]),
+      q_FFE = exp(parameters_values["q_FFE"]), 
+      q_PBL = exp(parameters_values["q_PBL"]), 
       Converged = answeroptim$convergence,
       ErrorMsg = NA_character_
     )
