@@ -113,7 +113,7 @@ parameter_vector_PBL <- function(dat,i) {
         func = sir_equations,
         parms = pars))
 
- df_PBL <- results %>% filter(time %in% matched_time) %>% mutate(PBL_pred = ((Cb + Ct + Lt + Lt2 + Lt3 + Lt4 + Lt5) /
+ df_PBL <- results %>% filter(time %in% matched_time) %>% mutate(PBL_pred = pars["q_PBL"] * ((Cb + Ct + Lt + Lt2 + Lt3 + Lt4 + Lt5) /
                                                                                (Cb + Ct + At + Lt + Lt2 + Lt3 + Lt4 + Lt5 +
                                                                                   B_cells + T_cells + Br)) * 10000) %>% 
    select(time, PBL_pred) %>% left_join(baigent2016PBL, by = "time")
@@ -139,7 +139,8 @@ parameters_values <- c(
   , lambda =0.02380952                  #adding delay, how long latent cell 'exposed'  
   , size_pp38 = log(10)   # new parameter 
   , size_pp38_Ct = log(10) 
-  , q_FFE = log(1000)
+  , q_FFE = 115 
+  , q_PBL = 115
 
 )
 
@@ -177,7 +178,7 @@ baigent1998 <- read_xlsx("Baigent1998/baigent1998Totalpp38.xlsx" )
 baigent2016PBL <- read_xlsx("Baigent2016/Unvax/PBL_noVax_SE.xlsx")
 optim_data <- read.csv("ScalingParamTestFeathers") %>% 
   filter(Converged == 0) %>% slice_min(Likely,n = 1) %>%  
-  select(c(beta,  alpha, alpha_2,nu_a,nu_f,mu,Pb, size_pp38, size_pp38_Ct, q_FFE))  
+  select(c(beta,  alpha, alpha_2,nu_a,nu_f,mu,Pb, size_pp38, size_pp38_Ct, q_FFE, q_PBL))  
 
 
 
