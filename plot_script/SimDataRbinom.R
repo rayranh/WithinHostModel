@@ -139,7 +139,7 @@ parameters_values <- c(
   , lambda =0.02380952                  #adding delay, how long latent cell 'exposed'  
   , size_pp38 = log(10)   # new parameter 
   , size_pp38_Ct = log(10) 
-  , q_FFE = 115 
+  , q_FFE = 214 
   , q_PBL = 115
 
 )
@@ -314,7 +314,7 @@ p_cb <- ggplot(sim_df_median, aes(x = time/24)) + geom_line(aes(y = med_Cb, colo
   theme_classic()  
 p_Ct <- ggplot(sim_df_median, aes(x = time/24)) + geom_line(aes(y = med_Ct, colour = "model T cells")) +  
   geom_ribbon(aes(ymin = low_Ct, ymax = high_Ct), fill = "grey80", alpha = 0.5) + 
-  xlim(0,10) +
+  coord_cartesian(xlim = c(0,10), ylim= c(0,100)) + 
   geom_point(data = baigent1998, aes(x = time/24, y = pp38TcellTotal, color = "data T cells"), inherit.aes = FALSE) + 
   scale_color_manual(values = c("data T cells" = "red", "model T cells" = "black")) + 
   labs(title = "Data Generated from Model - T cell Infection", x = "time(days post infection)", y = "# of Infected Cells") + 
