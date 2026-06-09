@@ -1,8 +1,6 @@
 #### This code is plotting all RB1B within host data along with some Feather Follicle data. 
 #### The Schermuly in vitro data is included in this code as well in addition to plaque assays  #### 
 
-
-
 library(dplyr)
 library(tidyr) 
 library(patchwork) 
@@ -11,10 +9,9 @@ library(ggplot2)
 
 ### BAIGENT 2016 ### 
 data_feathers2016 <- read.csv("~/Desktop/WithinHostModel/DataForProject/Baigent2016/Unvax/feathers_noVax_Fin_2.csv", header = TRUE) 
-data_pbl2016 <- read.csv( "~/Desktop/WithinHostModel/DataForProject/Baigent2016/Unvax/PBL_No_Vax_fin.csv")
+data_pbl2016 <- read_xlsx( "~/Desktop/WithinHostModel/DataForProject/Baigent2016/Unvax/PBL_noVax_SE.xlsx")
 
 data_feathers2016$V1 <- round(data_feathers2016$V1)
-data_pbl2016$time <- round(data_pbl2016$time)
 
 
 # Og scale - 10000000, x = (-5,40)
@@ -25,11 +22,11 @@ FeathersNoVax2016 <- ggplot(data = data_feathers2016, aes(x = V1, y = V2)) +
   geom_line() + coord_cartesian(xlim = c(-5,90)) + scale_x_continuous(breaks = seq(-5,90, by = 5) ) + 
   labs(title = "Feathers RB1B - No Vaccine ", y = "RB1B Genomes per 10^4" , x = "time(days)") 
 
-PBLNoVax2016 <- ggplot(data = data_pbl2016, aes(x = time, y = mean)) + 
+PBLNoVax2016 <- ggplot(data = data_pbl2016, aes(x = time/24, y = mean)) + 
   geom_point() + scale_y_log10(breaks = c(0.01,1,100,10000,1000000,100000000)) + 
   geom_linerange( aes(ymin = mean, ymax = ConfInt)) + 
   geom_errorbar(aes(ymin= ConfInt, ymax = ConfInt), width = 0.5) + 
-  geom_line() + coord_cartesian(xlim = c(-5,90), ylim = c(0.01,100000000)) + scale_x_continuous(breaks = seq(-5,90, by = 5) ) + 
+  geom_line() + coord_cartesian(xlim = c(0,90), ylim = c(0.01,100000000)) + scale_x_continuous(breaks = seq(-5,90, by = 5) ) + 
   labs(title = "Baigent2016 - PBL RB1B - No Vaccine " , y = "RB1B Genomes per 10^4", x = "time(days)")  
 
 
@@ -149,7 +146,7 @@ Spleen2001WLNoVax <-  ggplot(data = Spleen2001_WL, aes(x = time_wk, y = pfuxmil)
 bursa2024 <- read.csv("~/Desktop/WithinHostModel/DataForProject/Sabsabi2024/SabsabiWtbursa_Fin.csv") 
 spleen2024 <- read.csv("~/Desktop/WithinHostModel/DataForProject/Sabsabi2024/SabsabiWtSpleen_Fin.csv") 
 thymus2024 <- read.csv("~/Desktop/WithinHostModel/DataForProject/Sabsabi2024/SabsabiWtThymus_Fin.csv") 
-PBL2024 <- read.csv("~/Desktop/WithinHostModel/DataForProject/Sabsabi2024/sabsabi_PBL_WT_fin.csv")
+PBL2024 <- read.csv("~/Desktop/WithinHostModel/DataForProject/Sabsabi2024/sabsabi_PBL_WT_fin.csv") 
 
 
 PBL2024$time <- c(4,7,10,14,21,28)
@@ -293,11 +290,11 @@ GenomePer10KPlots <- ggplot(data = PBL2010, aes(time, mean, color = "PBL"))  +
   geom_linerange( data = data_pbl2016, aes(ymin = mean, ymax = ConfInt, color = "PBL")) +  
   geom_line(data = data_pbl2016, aes(x = time, y = mean, color = "PBL", linetype = "RIR")) + 
   geom_errorbar(data = data_pbl2016, aes(ymin= ConfInt, ymax = ConfInt, color = "PBL"), width = 0.5) +  
-  geom_point(data = PBL2007, aes(time, MDV_load, color = "PBL"), inherit.aes = FALSE) +  
-  geom_linerange(data = PBL2007, aes(x = time, ymin = LowerConfInf, ymax = UpperConfInt, color = "PBL"), inherit.aes = FALSE) + 
-  geom_errorbar( data = PBL2007, aes(x = time, ymin= LowerConfInf, ymax = UpperConfInt, color = "PBL"), inherit.aes = FALSE, width = 0.5) +  
-  geom_line(data = PBL2007, aes(time, MDV_load, color = "PBL", linetype = "Line P"), inherit.aes = FALSE) + 
-  geom_point(data = kidney2011, aes(time, y = mean, color = "Kidney"), inherit.aes = FALSE) +  
+  # geom_point(data = PBL2007, aes(time, MDV_load, color = "PBL"), inherit.aes = FALSE) +  
+  # geom_linerange(data = PBL2007, aes(x = time, ymin = LowerConfInf, ymax = UpperConfInt, color = "PBL"), inherit.aes = FALSE) + 
+  # geom_errorbar( data = PBL2007, aes(x = time, ymin= LowerConfInf, ymax = UpperConfInt, color = "PBL"), inherit.aes = FALSE, width = 0.5) +  # For Spatz 2007 need to ask 
+  # geom_line(data = PBL2007, aes(time, MDV_load, color = "PBL", linetype = "Line P"), inherit.aes = FALSE) + 
+  # geom_point(data = kidney2011, aes(time, y = mean, color = "Kidney"), inherit.aes = FALSE) +  
   geom_line(data = kidney2011 %>% slice(1:n()-1), aes(time, y = mean, color = "Kidney"), inherit.aes = FALSE) + 
   geom_linerange( data = kidney2011, aes(time, ymin = mean, ymax = ConfInt, color = "Kidney"), inherit.aes = FALSE) + 
   geom_errorbar(data = kidney2011, aes(time, ymin= ConfInt, ymax = ConfInt, color = "Kidney"), width = 0.5, inherit.aes = FALSE) + 
@@ -312,18 +309,18 @@ GenomePer10KPlots <- ggplot(data = PBL2010, aes(time, mean, color = "PBL"))  +
   geom_point(data = CEF2020, aes(x = time, y = MDV_load, color = "CEF"), inherit.aes = FALSE) +  
   geom_errorbar(data = CEF2020, aes(time, ymin= lowersd, ymax = uppersd, color = "CEF"), width = 0.05, inherit.aes = FALSE) +
   geom_line(data = CEF2020, aes(x = time, y = MDV_load, color = "CEF"), inherit.aes = FALSE) + 
-  geom_point(data = BCells2015, aes(time, MDV_load, color = "In Vitro B"), inherit.aes = FALSE) + 
-  geom_line(data = BCells2015, aes(time, MDV_load, color = "In Vitro B"), inherit.aes = FALSE) + 
-  geom_linerange(data = BCells2015, aes(x = time, ymin = lowersd, ymax = uppersd, color = "In Vitro B"), inherit.aes = FALSE) +
-  geom_errorbar(data = BCells2015, aes(x = time, ymin = lowersd, ymax = uppersd, color = "In Vitro B"), inherit.aes = FALSE) +  
-  geom_point(data = TCells2015, aes(time, MDV_load, color = "In Vitro T"), inherit.aes = FALSE) + 
-  geom_line(data = TCells2015, aes(time, MDV_load, color = "In Vitro T"), inherit.aes = FALSE) + 
-  geom_linerange(data = TCells2015, aes(x = time, ymin = lowersd, ymax = uppersd, color = "In Vitro T"), inherit.aes = FALSE) +
-  geom_errorbar(data = TCells2015, aes(x = time, ymin = lowersd, ymax = uppersd, color = "In Vitro T"), inherit.aes = FALSE) + 
-  coord_cartesian(ylim = c(0.01,100000000)) + geom_point(data = PBLConradie2020, aes(x = time, y = mean, color = "PBL"), inherit.aes = FALSE) + 
-  geom_linerange(data = PBLConradie2020, aes(x = time, ymin = lower, ymax = upper, color = "PBL"), inherit.aes = FALSE) +  
-  geom_line(data = PBLConradie2020, aes(x = time, y =mean, color = "PBL"), inherit.aes = FALSE) + 
-  geom_errorbar(data = PBLConradie2020, aes(x = time, ymin= lower, ymax = upper, color = "PBL"), width = 0.5, inherit.aes = FALSE) + 
+  # geom_point(data = BCells2015, aes(time, MDV_load, color = "In Vitro B"), inherit.aes = FALSE) + 
+  # geom_line(data = BCells2015, aes(time, MDV_load, color = "In Vitro B"), inherit.aes = FALSE) + 
+  # geom_linerange(data = BCells2015, aes(x = time, ymin = lowersd, ymax = uppersd, color = "In Vitro B"), inherit.aes = FALSE) +
+  # geom_errorbar(data = BCells2015, aes(x = time, ymin = lowersd, ymax = uppersd, color = "In Vitro B"), inherit.aes = FALSE) +  
+  # geom_point(data = TCells2015, aes(time, MDV_load, color = "In Vitro T"), inherit.aes = FALSE) +       #used these for assessing infection rate betas 
+  # geom_line(data = TCells2015, aes(time, MDV_load, color = "In Vitro T"), inherit.aes = FALSE) + 
+  # geom_linerange(data = TCells2015, aes(x = time, ymin = lowersd, ymax = uppersd, color = "In Vitro T"), inherit.aes = FALSE) +
+  # geom_errorbar(data = TCells2015, aes(x = time, ymin = lowersd, ymax = uppersd, color = "In Vitro T"), inherit.aes = FALSE) + 
+  coord_cartesian(ylim = c(0.01,100000000)) + geom_point(data = PBLConradie2020, aes(x = time, y = mean, color = "PBL"), inherit.aes = FALSE) +
+  geom_linerange(data = PBLConradie2020, aes(x = time, ymin = lower, ymax = upper, color = "PBL"), inherit.aes = FALSE) +
+  geom_line(data = PBLConradie2020, aes(x = time, y =mean, color = "PBL"), inherit.aes = FALSE) +  # conradie has really low infection why? because they used different meq backbone plugged into each v,vv,vv+ virus 
+  geom_errorbar(data = PBLConradie2020, aes(x = time, ymin= lower, ymax = upper, color = "PBL"), width = 0.5, inherit.aes = FALSE) +
   scale_color_manual(name = "Organs", values = c("PBL" = "slateblue1", "Kidney" = "aquamarine", "Spleen" = "darkorchid2", "Liver" = "orange", 
                                                  "CEF" = "palegreen4", "In Vitro B" = "red", "In Vitro T" = "pink", "Bursa" = "green", "Thymus" = "blue" )) +  
   # geom_point(data = BerthaultThymus2018, aes(x = time, y = genomeper10k, color = "Thymus"), inherit.aes = FALSE) +   
@@ -337,7 +334,7 @@ GenomePer10KPlots <- ggplot(data = PBL2010, aes(time, mean, color = "PBL"))  +
   scale_linetype_manual(name = "Chicken Type" , values = c("WhiteLeghorn B19/19" = "dashed", "RIR" = "solid", "Line P" = "dotted")) + 
   scale_x_continuous(limits = c(0,90), breaks = seq(0,90, by = 5) ) + labs(title = "RB1B WithinHost Data" , y = "RB1B Genomes per 10^4", x = "time(days)")  
   
-  
+GenomePer10KPlots  
    #dont know if error bars are sd or something else 
   BCells2015Plot <- ggplot(data = BCells2015, aes(time, MDV_load)) +
     geom_point() + geom_line() + scale_y_log10(limits =  c(0.01,100000000) , breaks = c(0.01,1,100,10000,1000000,100000000)) +  
