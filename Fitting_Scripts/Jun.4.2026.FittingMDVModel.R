@@ -183,7 +183,7 @@ parameters_values <- c(
   , lambda = 0.02380952             # fixing delay rate to (1/(7*24))*4   
   , size_pp38 = log(10)   # new parameter 
   , size_pp38_Ct = log(10) 
-  , q_FFE = log(115) 
+  , q_FFE = log(214) 
   , q_PBL = log(115)
 )
 
