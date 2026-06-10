@@ -1,5 +1,4 @@
 #Using this code to generate random numbers for ALL parameters not keeping alpha, beta, stagnant 
-
 #rm(list = ls())
 library(dplyr) 
 library(tibble)
@@ -21,8 +20,8 @@ sir_equations <- function(time, variables, parameters) {
     dB <-  -beta*Cb*B_cells - beta*Ct*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
     dBr <- (1-Pb)*(g1*(Cb+Ct)/(g2+(Cb+Ct))) #probably should have alpha for cytolytic infection 
     dCb <- beta*Cb*B_cells + beta*Ct*B_cells - alpha*Cb 
-    dT <- -nu_a*Cb*T_cells - nu_a*Ct*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
-    dAt <- nu_a*Cb*T_cells + nu_a*Ct*T_cells - beta*Ct*At - beta*Cb*At  # beta = rate of activated T cells by Ct and Cb cells   
+    dT <- - nu_a*((Cb+Ct)/(Cb+Ct+T_cells+Lt+Lt2+Lt3+Lt4+Lt5+At))*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
+    dAt <-  nu_a*((Cb+Ct)/(Cb+Ct+T_cells+Lt+Lt2+Lt3+Lt4+Lt5+At))*T_cells - beta*Ct*At - beta*Cb*At  # beta = rate of activated T cells by Ct and Cb cells   
     dLt <- theta *(beta*Ct*At + beta*Cb*At)  - lambda*Lt 
     dLt2 <- lambda*Lt - lambda*Lt2 
     dLt3 <- lambda*Lt2 - lambda*Lt3 
@@ -52,8 +51,8 @@ Likelihood_parts <- function(params){
   pars["Pb"] <- plogis(pars["Pb"])  
   pars["size_pp38"] <- exp(pars["size_pp38"]) 
   pars["size_pp38_Ct"] <- exp(pars["size_pp38_Ct"])   
-  pars["q_FFE"] <- exp(pars["q_FFE"]) 
-  pars["q_PBL"] <- exp(pars["q_PBL"])
+  # pars["q_FFE"] <- exp(pars["q_FFE"]) 
+  # pars["q_PBL"] <- exp(pars["q_PBL"])
   
   
   
@@ -75,9 +74,9 @@ Likelihood_parts <- function(params){
     dplyr::select(B_cells, Cb,Br, Ct, T_cells, At, Lt, Lt2, Lt3, Lt4, Lt5, time) %>% 
     mutate(
       prob_Cyto = (Cb + Ct) / (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5),
-      inf_cells = ((Cb + Ct) / (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5))*40000,
-      inf_cells_Cb = ((Cb) / (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5))*40000,  
-      inf_cells_Ct = ((Ct) / (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5))*40000# getting rid of Lt because Lt is not even present at this time point
+      inf_cells = ((Cb + Ct) / (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5))*125000,
+      inf_cells_Cb = ((Cb) / (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5))*125000,  
+      inf_cells_Ct = ((Ct) / (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5))*125000# getting rid of Lt because Lt is not even present at this time point
     ) %>% filter(time %in% obs_hourspp38) 
   
   #matching model time to feathers time 
@@ -107,7 +106,7 @@ Likelihood_parts <- function(params){
   
   loglike_ffe <- dnorm(
     ffe_join$logged10Mean, #log10() here to match the log10 of the data and keep scale true
-    mean = log10(pars["q_FFE"] * ffe_join$If_per10k),
+    mean = log10( ffe_join$If_per10k),
     sd =  0.352, # Avg SE calculated from 17dpi onwards 
     log = TRUE # outer log is TRUE so it is returning ln() to keep consistent
   )   
@@ -115,7 +114,7 @@ Likelihood_parts <- function(params){
   sum_loglike_ffe <- sum(loglike_ffe)  
   
   PBLModelInfection <- results %>% 
-    mutate(genomes_pbl = pars["q_PBL"]*(Cb + Ct + Lt + Lt2 + Lt3 + Lt4 + Lt5)/(Cb+Ct+B_cells+T_cells+At+Lt+Lt2+Lt3+Lt4+Lt5+Br)*10000) %>%
+    mutate(genomes_pbl =(Cb + Ct + Lt + Lt2 + Lt3 + Lt4 + Lt5)/(Cb+Ct+B_cells+T_cells+At+Lt+Lt2+Lt3+Lt4+Lt5+Br)*10000) %>%
     filter(time %in% matched_time) %>% select(time,Cb, Ct, Lt, Lt2, Lt3, Lt4, Lt5, genomes_pbl)
   
   PBL_join <- baigentpbl2016 %>% left_join(PBLModelInfection, by = "time")
@@ -183,8 +182,8 @@ parameters_values <- c(
   , lambda = 0.02380952             # fixing delay rate to (1/(7*24))*4   
   , size_pp38 = log(10)   # new parameter 
   , size_pp38_Ct = log(10) 
-  , q_FFE = log(214) 
-  , q_PBL = log(115)
+  # , q_FFE = log(214) 
+  # , q_PBL = log(115)
 )
 
 
@@ -269,8 +268,8 @@ optim_for_alpha <- function() {
       Pb       = plogis(answeroptim$par["Pb"]), 
       size_pp38 = exp(answeroptim$par["size_pp38"]), 
       size_pp38_Ct = exp(answeroptim$par["size_pp38_Ct"]),  
-      q_FFE = exp(parameters_values["q_FFE"]), 
-      q_PBL = exp(parameters_values["q_PBL"]), 
+      # q_FFE = exp(parameters_values["q_FFE"]), 
+      # q_PBL = exp(parameters_values["q_PBL"]), 
       Converged = answeroptim$convergence,
       ErrorMsg = NA_character_
     )
@@ -299,7 +298,7 @@ optim_for_alpha <- function() {
       Pb       = NA_real_, 
       size_pp38 = NA_real_,
       size_pp38_Ct = NA_real_, 
-      q_FFE = NA_real_, 
+      # q_FFE = NA_real_, 
       Converged = NA_integer_,
       ErrorMsg = e$message
       
@@ -344,7 +343,7 @@ results_list <- lapply(
 
 final_df <- bind_rows(results_list) 
 
-write.csv(final_df, "/Users/rayanhg/Desktop/WithinHostModel/DataForProject/ScalingParamTestFeathers")
+write.csv(final_df, "/Users/rayanhg/Desktop/WithinHostModel/DataForProject/ScalingParamTestFeathers.csv")
 
 # out_file <- sprintf("~/work/3.9.26.FittingForVariance_%03d.csv", task) #outputting separate files 
 # 
