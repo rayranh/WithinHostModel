@@ -18,8 +18,8 @@ sir_equations <- function(time, variables, parameters) {
     dB <-  -beta*Cb*B_cells - beta*Ct*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
     dBr <- (1-Pb)*(g1*(Cb+Ct)/(g2+(Cb+Ct))) #probably should have alpha for cytolytic infection 
     dCb <- beta*Cb*B_cells + beta*Ct*B_cells - alpha*Cb 
-    dT <- -nu_a*Cb*T_cells - nu_a*Ct*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
-    dAt <- nu_a*Cb*T_cells + nu_a*Ct*T_cells - beta*Ct*At - beta*Cb*At  # beta = rate of activated T cells by Ct and Cb cells   
+    dT <- -nu_a*((Cb+Ct)/(Cb+Ct+T_cells+Lt+Lt2+Lt3+Lt4+Lt5+At))*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
+    dAt <- nu_a*((Cb+Ct)/(Cb+Ct+T_cells+Lt+Lt2+Lt3+Lt4+Lt5+At))*T_cells - beta*Ct*At - beta*Cb*At  # beta = rate of activated T cells by Ct and Cb cells   
     dLt <- theta *(beta*Ct*At + beta*Cb*At)  - lambda*Lt 
     dLt2 <- lambda*Lt - lambda*Lt2 
     dLt3 <- lambda*Lt2 - lambda*Lt3 
@@ -54,8 +54,8 @@ parameter_vector <- function(dat,i) {
         func = sir_equations, 
         parms = pars))   
   
-  df <- results %>% mutate(numInfCells = (Cb)/(Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5+B_cells+T_cells+Br)*40000, 
-                           numInfCells_Ct = (Ct)/(Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5+B_cells+T_cells+Br)*40000) %>% 
+  df <- results %>% mutate(numInfCells = (Cb)/(Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5+B_cells+T_cells+Br)* 125000, 
+                           numInfCells_Ct = (Ct)/(Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5+B_cells+T_cells+Br)* 125000) %>% 
     filter(time %in% obs_hourspp38) %>% select(numInfCells,numInfCells_Ct, time) 
   
   cyto_df2 <- df  %>%  mutate(size_Cb = pars["size_pp38"], size_Ct = pars["size_pp38_Ct"]) 
@@ -87,7 +87,7 @@ parameter_vector_FFE <- function(dat,i) {
   
 
   df_FFE <- results %>% filter(time
-                               %in% matched_time) %>% mutate(If_per10k = pars["q_FFE"] * (If/(If+f)) *10000) %>% 
+                               %in% matched_time) %>% mutate(If_per10k = (If/(If+f)) *10000) %>% 
   select(time, If_per10k) %>% left_join(baigent2016, by = "time")
  
   
@@ -113,7 +113,7 @@ parameter_vector_PBL <- function(dat,i) {
         func = sir_equations,
         parms = pars))
 
- df_PBL <- results %>% filter(time %in% matched_time) %>% mutate(PBL_pred = pars["q_PBL"] * ((Cb + Ct + Lt + Lt2 + Lt3 + Lt4 + Lt5) /
+ df_PBL <- results %>% filter(time %in% matched_time) %>% mutate(PBL_pred =  ((Cb + Ct + Lt + Lt2 + Lt3 + Lt4 + Lt5) /
                                                                                (Cb + Ct + At + Lt + Lt2 + Lt3 + Lt4 + Lt5 +
                                                                                   B_cells + T_cells + Br)) * 10000) %>% 
    select(time, PBL_pred) %>% left_join(baigent2016PBL, by = "time")
@@ -126,7 +126,7 @@ parameter_vector_PBL <- function(dat,i) {
 parameters_values <- c( 
   beta =  6.951463e-07                  #contact rate with B cells  
   , Pb = 0.005
-  , nu_a = 4.668718e-01                     #Activation rate of T cells by cytolytic B cells (hours)
+  , nu_a = 0.1666667                     #Activation rate of T cells by cytolytic B cells (hours)
   , nu_f = 0.008                     #Infection rate of follicular cells (hours)
   , mu = 1/8                        #Rate of Tumor Cells (every 72 hours)
   , alpha = 0.0104                   #death rate of cytolytic B cells (every 33 hours)
@@ -139,8 +139,8 @@ parameters_values <- c(
   , lambda =0.02380952                  #adding delay, how long latent cell 'exposed'  
   , size_pp38 = log(10)   # new parameter 
   , size_pp38_Ct = log(10) 
-  , q_FFE = 214 
-  , q_PBL = 115
+  # , q_FFE = 214 
+  # , q_PBL = 115
 
 )
 
@@ -178,7 +178,7 @@ baigent1998 <- read_xlsx("Baigent1998/baigent1998Totalpp38.xlsx" )
 baigent2016PBL <- read_xlsx("Baigent2016/Unvax/PBL_noVax_SE.xlsx")
 optim_data <- read.csv("ScalingParamTestFeathers") %>% 
   filter(Converged == 0) %>% slice_min(Likely,n = 1) %>%  
-  select(c(beta,  alpha, alpha_2,nu_a,nu_f,mu,Pb, size_pp38, size_pp38_Ct, q_FFE, q_PBL))  
+  select(c(beta,  alpha, alpha_2,nu_a,nu_f,mu,Pb, size_pp38, size_pp38_Ct))  
 
 
 
@@ -314,7 +314,7 @@ p_cb <- ggplot(sim_df_median, aes(x = time/24)) + geom_line(aes(y = med_Cb, colo
   theme_classic()  
 p_Ct <- ggplot(sim_df_median, aes(x = time/24)) + geom_line(aes(y = med_Ct, colour = "model T cells")) +  
   geom_ribbon(aes(ymin = low_Ct, ymax = high_Ct), fill = "grey80", alpha = 0.5) + 
-  coord_cartesian(xlim = c(0,10), ylim= c(0,100)) + 
+  coord_cartesian(xlim = c(0,10)) + 
   geom_point(data = baigent1998, aes(x = time/24, y = pp38TcellTotal, color = "data T cells"), inherit.aes = FALSE) + 
   scale_color_manual(values = c("data T cells" = "red", "model T cells" = "black")) + 
   labs(title = "Data Generated from Model - T cell Infection", x = "time(days post infection)", y = "# of Infected Cells") + 
