@@ -176,8 +176,8 @@ baigent2016 <- read_xlsx("Baigent2016/Unvax/feathers_noVax_SE.xlsx") %>%
 
 baigent1998 <- read_xlsx("Baigent1998/baigent1998Totalpp38.xlsx" )
 baigent2016PBL <- read_xlsx("Baigent2016/Unvax/PBL_noVax_SE.xlsx")
-optim_data <- read.csv("ScalingParamTestFeathers") %>% 
-  filter(Converged == 0) %>% slice_min(Likely,n = 1) %>%  
+optim_data <- read.csv("Jun.9.26.FittingMDVModelFixedNuCombined.csv") %>% 
+  filter(Converged == 0) %>% slice_min(Likely,n = 10) %>%  
   select(c(beta,  alpha, alpha_2,nu_a,nu_f,mu,Pb, size_pp38, size_pp38_Ct))  
 
 
