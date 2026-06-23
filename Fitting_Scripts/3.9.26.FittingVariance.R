@@ -1,4 +1,4 @@
-#Using this code to generate random numbers for ALL parameters not keeping alpha, beta, stagnant 
+#this code was used for my comps meeting# 
 
 rm(list = ls())
 library(dplyr) 
