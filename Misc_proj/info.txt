@@ -1,0 +1,1 @@
+This folder is for including random project scripts that i use to learn about ecological modeling 
