@@ -6,7 +6,8 @@ library(ggplot2)
 library(dplyr) 
 library(readxl)  
 library(purrr) 
-library(tictoc)
+library(tictoc) 
+library(grid)
 setwd("~/Desktop/WithinHostModel/DataForProject/") 
 
 
@@ -91,6 +92,31 @@ parameter_vector_FFE <- function(dat,i) {
   
   return(df_FFE)
 }   
+ 
+
+ 
+parameter_vector_FULL <- function(dat,i) { 
+  param_vector <- unlist(dat[i,])  
+  init <- initial_values 
+  B0 <-  2.4e9/3 
+  
+  pars <- parameters_values
+  pars[names(param_vector)] <- param_vector 
+  init["B_cells"] <- B0*pars["Pb"] 
+  init["Br"] <- B0*(1 - pars["Pb"])  
+  
+  # run model
+  results <- as.data.frame(
+    ode(y = init, 
+        times = time_values, 
+        func = sir_equations, 
+        parms = pars))   
+  
+  df <- results %>% mutate(numInfCells = (Cb)/(Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5+B_cells+T_cells+Br)* 40000, 
+                           numInfCells_Ct = (Ct)/(Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5+B_cells+T_cells+Br)* 40000) %>% select(!c(Cb, Ct))
+  
+  return(df)
+}  
 
 
 parameters_values <- c( 
@@ -159,6 +185,7 @@ OneDf_all <- map_df(1:nrow(optim_data), ~ parameter_vector(optim_data, .x))
 # OneDfFFe <- parameter_vector_FFE(dat = optim_data, 1)
 OneDf_FFE_all <- map_df(1:nrow(optim_data), ~ parameter_vector_FFE(optim_data, .x))  
 
+OneDf_FULL <- map_df(1:nrow(optim_data), ~ parameter_vector_FULL(optim_data, .x))  
 
 
 # ------------ Simulating Data for pp38 ------------ # 
@@ -311,6 +338,79 @@ p2_data <- ggplot(baigent2016, aes(x = time/24, y = mean_genomes, color = "data"
   xlim(0,40) + scale_color_manual(values = c("model" = "black", "data" = "red"))  + 
   labs(title = "Data", x = "time(days post infection)", y = "Mean Number of MDV Genomes") + 
   theme(panel.grid = element_blank()) + 
-  theme_classic()
+  theme_classic() 
+
+
+PosterFFEPlot <- ggplot(data = OneDf_FULL, aes(x = time/24, y = If)) +
+  geom_line(aes(colour = "Model Fit Infected\nFeather Follicles"), linewidth = 2) + scale_y_log10(limits = c(0.0000001, 1000000000)) +  
+  geom_ribbon( data = sim_FFE_median,aes(x = time/24, ymin = low, ymax = high, fill = "95% Confidence"),alpha = 0.5,inherit.aes = FALSE, show.legend = FALSE) +
+  geom_errorbar(data = baigent2016,aes(x = time/24,ymin = lowerconf,ymax = upper.conf,color = "Experimental Data"), linewidth = 1,width = 2,inherit.aes = FALSE)+ 
+  xlim(0,40) + geom_point(data = baigent2016, aes(x = time/24, y = mean_genomes, color = "Experimental Data"), size = 4,inherit.aes = FALSE) + 
+  scale_color_manual(name = "Data Type" , values = c("Model Fit Infected\nFeather Follicles" = "black", "Experimental Data" = "red")) +
+  scale_fill_manual(values = c("95% Confidence" = "grey80")) +  
+  theme(panel.grid = element_blank()) + 
+  labs(x = "time(days post infection)", y = "Mean Number of MDV Genomes\nper 10,000 FFE cells") + 
+  theme_classic() + theme(plot.title = element_text(size = 30, hjust = 0.3, face = "bold"),
+                          axis.title = element_text(size = 28, face = "bold"), 
+                          legend.text = element_text(size = 28, face = "bold"), 
+                          legend.title = element_text(size = 28, face = "bold"), 
+                          axis.text.y = element_text(size = 25, face = "bold"), 
+                          axis.text.x = element_text(size = 25, face = "bold"), 
+                          legend.key.height = unit(2.5, "cm")) 
+
+
+Poster_Cb <- ggplot(data = OneDf_FULL, aes(x = time/24, y = numInfCells)) +
+  geom_line(aes(colour = "Model Fit Cytolytic\nB cells"), linewidth = 2) +  
+  geom_ribbon( data = sim_df_median,aes(x = time/24, ymin = low_Cb, ymax = high_Cb, fill = "95% Confidence"),alpha = 0.5,inherit.aes = FALSE, show.legend = FALSE) + 
+  geom_point(data = baigent1998, aes(x = time/24, y =Bcell_no, color = "Experimental Data\nCytolytic B cells"), inherit.aes = FALSE) + 
+  xlim(0,10) + scale_color_manual(name = "Data Type" , values = c("Model Fit Cytolytic\nB cells" = "black", "Experimental Data\nCytolytic B cells" = "red")) +
+  scale_fill_manual(values = c("95% Confidence" = "grey80")) +  
+  theme(panel.grid = element_blank()) + 
+  labs(x = "time(days post infection)", y = "Cytolytic B Cells\nper 40,000 Lymphocytes") + 
+  theme_classic() + theme(plot.title = element_text(size = 30, hjust = 0.3, face = "bold"),
+                          axis.title = element_text(size = 28, face = "bold"), 
+                          legend.text = element_text(size = 28, face = "bold"), 
+                          legend.title = element_text(size = 28, face = "bold"), 
+                          axis.text.y = element_text(size = 25, face = "bold"), 
+                          axis.text.x = element_text(size = 25, face = "bold"), 
+                          legend.key.height = unit(2.5, "cm")) 
+
+
+
+
+Poster_Ct <- ggplot(data = OneDf_FULL, aes(x = time/24, y = numInfCells_Ct)) +
+  geom_line(aes(colour = "Model Fit Cytolytic\nT cells"), linewidth = 2) +  
+  geom_ribbon( data = sim_df_median,aes(x = time/24, ymin = low_Ct, ymax = high_Ct, fill = "95% Confidence"),alpha = 0.5,inherit.aes = FALSE, show.legend = FALSE) + 
+  geom_point(data = baigent1998, aes(x = time/24, y =Tcell_no, color = "Experimental Data\nCytolytic T cells"), inherit.aes = FALSE) + 
+  xlim(0,10) + scale_color_manual(name = "Data Type" , values = c("Model Fit Cytolytic\nT cells" = "black", "Experimental Data\nCytolytic T cells" = "red")) +
+  scale_fill_manual(values = c("95% Confidence" = "grey80")) +  
+  theme(panel.grid = element_blank()) + 
+  labs(x = "time(days post infection)", y = "Cytolytic T Cells\nper 40,000 Lymphocytes") + 
+  theme_classic() + theme(plot.title = element_text(size = 30, hjust = 0.3, face = "bold"),
+                          axis.title = element_text(size = 28, face = "bold"), 
+                          legend.text = element_text(size = 28, face = "bold"), 
+                          legend.title = element_text(size = 28, face = "bold"), 
+                          axis.text.y = element_text(size = 25, face = "bold"), 
+                          axis.text.x = element_text(size = 25, face = "bold"), 
+                          legend.key.height = unit(2.5, "cm")) 
+
+
+df2 <- pivot_longer(OneDf_FULL, cols = -time, names_to = "variable", values_to = "value")
+
+
+everything <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line(linewidth = 2) +
+  scale_color_manual(values = c("T_cells" = "red", "At" = "blue", "Lt5" = "purple", "B_cells" = "black", 
+                                "Z" = "lightblue", "Br" = "orange","Lt2" = "chartreuse", 
+                                "Lt3" = "chartreuse", "Lt4" = "chartreuse", "Lt" = "chartreuse"), 
+                     labels = c(setNames(expression(T[A],B[r],T[L], T[L[2]], T[L[3]], T[L[4]], T[L[5]], B["cells"], T["cells"], Z), 
+                                         c("At", "Br", "Lt", "Lt2", "Lt3", "Lt4", "Lt5", "B_cells", "T_cells", "Z")))) +
+  labs(title = "MDV Within-Host Model", color = "Cell Type") + theme(legend.position = "right") + xlab(label = "Time (days post infection)") + 
+  ylab(label = "Cell Number") + theme_classic() + theme(plot.title = element_text(size = 30, hjust = 0.5, face = "bold"),
+                                                        axis.title = element_text(size = 28, face = "bold"), 
+                                                        legend.text = element_text(size = 28, face = "bold"), 
+                                                        legend.title = element_text(size = 28, face = "bold"), 
+                                                        axis.text.y = element_text(size = 25, face = "bold"), 
+                                                        axis.text.x = element_text(size = 25, face = "bold")) + coord_cartesian(ylim = c(0,2.5e8))
+
 
 
