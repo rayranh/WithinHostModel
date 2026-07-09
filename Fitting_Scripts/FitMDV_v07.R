@@ -63,7 +63,7 @@ Likelihood_parts <- function(params){
   init["B_cells"] <- B0*pars["Pb"] 
   init["Br"] <- B0* (1 - pars["Pb"])
   
-  # run model
+  # run modelop
   results <- as.data.frame(
     ode(y = init, 
         times = time_values, 
@@ -94,7 +94,12 @@ Likelihood_parts <- function(params){
   
   # join model predictions (If) to observed data by time
   ffe_join <- ffe_dat %>%
-    left_join(Infected_FFE, by = "time")  # brings in If
+    left_join(Infected_FFE, by = "time")  # brings in Ifn 
+  
+  ### Scaling PBL model and adding PBL data to same df ### 
+  InfectedPBL <- results %>% mutate(InfCellPBL = (Cb + Ct + Lt + Lt2 + Lt3 + Lt4 + Lt5)/
+                                      (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5) * 10000) %>% 
+    filter(time %in% matched_time) %>% select(time, InfCellPBL) %>% left_join(baigent2016_PBL, by = "time")
   
   pp38_dbinom_Cb <- pp38_dat %>% filter(time %in% obs_hourspp38) %>% 
     left_join(infprob %>% select(time, inf_cells_Cb), by = "time") 
@@ -120,13 +125,28 @@ Likelihood_parts <- function(params){
     log = TRUE # outer log is TRUE so it is returning ln() to keep consistent
   )  
   
+  
   sum_loglike_ffe <- sum(loglike_ffe) 
   
-  LogLHoodStor <- sum_loglike_ffe + sum_loglike_pp38
+
+  ### Adding PBL Data ### 
+  loglike_PBL2016 <- dnorm(
+    log10(InfectedPBL$mean), #observed data 
+    mean = log10(InfectedPBL$InfCellPBL), #model 
+    sd =  0.5, # SE calculated from 10dpi onwards 
+    log = TRUE # outer log is TRUE so it is returning ln() to keep consistent
+  )  
+  
+  sum_loglike_PBL <- sum(loglike_PBL2016) 
+  
+  
+  LogLHoodStor <- sum_loglike_ffe + sum_loglike_pp38 + sum_loglike_PBL
+  
   
   list(neg_LogLHoodStor = -LogLHoodStor,
        neg_sum_loglike_ffe = -sum_loglike_ffe, 
-       neg_sum_loglike_pp38 =  -sum_loglike_pp38)
+       neg_sum_loglike_pp38 =  -sum_loglike_pp38, 
+       neg_sum_loglike_PBL = -sum_loglike_PBL)
   
 } 
 
@@ -211,7 +231,9 @@ obs_hourspp38 <- c(72,96,120,144) # make sure pp38 times is matching the data lo
 
 pp38_dat <-  read_xlsx("~/work/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, Bcell_no,Tcell_no)
 
-baigent2016 <- read_xlsx("~/work/baigent2016.xlsx", sheet = 2 ) %>% arrange(time)
+baigent2016 <- read_xlsx("~/work/baigent2016.xlsx", sheet = 2 ) %>% arrange(time) 
+
+baigent2016_PBL <- read_xlsx("~/work/PBL_No_Vax_fin.xlsx") %>% filter(time > -1) %>% mutate(time = round(time*24, 0))
 
 
 #generate random parameters 
@@ -245,7 +267,8 @@ optim_for_alpha <- function() {
     tibble::tibble(
       Likely   = answeroptim$value, 
       Likely_pp38 = parts$neg_sum_loglike_pp38, 
-      Likely_ffe = parts$neg_sum_loglike_ffe, 
+      Likely_ffe = parts$neg_sum_loglike_ffe,  
+      Likely_PBL = parts$neg_sum_loglike_PBL, 
       beta     = exp(answeroptim$par["beta"]),
       beta_2   = exp(answeroptim$par["beta_2"]),
       alpha    = exp(answeroptim$par["alpha"]),
@@ -276,6 +299,7 @@ optim_for_alpha <- function() {
       Likely   = Inf, 
       Likely_pp38 = NA_real_,
       Likely_ffe  = NA_real_,
+      Likely_PBL  = NA_real_,
       beta     = NA_real_,
       beta_2   = NA_real_,
       alpha    = NA_real_,
