@@ -125,6 +125,7 @@ creating_plots <- function(listofdf, i) {
   print(everything)
   print(everything_log)
   print(cytolytic_plot) 
+  print(PBL_plot)
   print(FFE_plot)
   
 }
