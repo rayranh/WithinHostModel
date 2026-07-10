@@ -1,7 +1,7 @@
 ###plotting the top 10 best likelihood scores in ggplot from csv file ###  
 ### Make sure same starting initial conditions ### 
 
-#rm(list = ls())
+rm(list = ls())
 library(deSolve)  
 library(tidyr) 
 library(ggplot2)
@@ -69,7 +69,9 @@ creating_plots <- function(listofdf, i) {
                                 cytolytic_scale_40000_cb = ((Cb)/(B_cells+Cb+Ct+T_cells+At+Br+Lt+Lt2+Lt3+Lt4+Lt5))* 40000, 
                                 cytolytic_scale_40000_ct = ((Ct)/(B_cells+Cb+Ct+T_cells+At+Br+Lt+Lt2+Lt3+Lt4+Lt5))* 40000) 
   
-  df_for_ffe <- df %>% select(time,If, f) %>% mutate(IfPer10k = (If)/(If+f)* 10000 * optim_data$q_FFE[i])
+  df_for_ffe <- df %>% select(time,If, f) %>% mutate(IfPer10k = (If)/(If+f)* 10000 * optim_data$q_FFE[i]) 
+  
+  df_for_PBL <- df %>% mutate(PBL_scale_10000 = (Cb + Ct + Lt + Lt2 + Lt3 + Lt4 + Lt5)/(B_cells+Cb+Ct+T_cells+At+Br+Lt+Lt2+Lt3+Lt4+Lt5) * 10000)
   
   # df_PBL <- df %>% mutate(PBL_scale_10000 = (Cb+Ct+Lt+Lt2+Lt3+Lt4+Lt5)/(B_cells+T_cells+Br+Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5)*10000)
   
@@ -79,7 +81,15 @@ creating_plots <- function(listofdf, i) {
                                   "Z" = "lightblue", "Br" = "orange","Lt2" = "chartreuse", 
                                   "Lt3" = "chartreuse", "Lt4" = "chartreuse", "Lt" = "chartreuse"), labels = c("T_cells" = "T cells")) +
     labs(title = "Within-Host Model", color = "Cell Type") + theme(legend.position = "right") + xlab(label = "Time (days post infection)") + 
-    ylab(label = "Cell Number") + theme_classic() 
+    ylab(label = "Cell Number") + theme_classic()  
+  
+  
+  everything_log <- ggplot(data = df2, aes(x = time/24, y = value, group = variable, colour = variable )) + geom_line() +
+    scale_color_manual(values = c("T_cells" = "red", "At" = "blue", "Lt5" = "purple", "B_cells" = "black", 
+                                  "Z" = "lightblue", "Br" = "orange","Lt2" = "chartreuse", 
+                                  "Lt3" = "chartreuse", "Lt4" = "chartreuse", "Lt" = "chartreuse"), labels = c("T_cells" = "T cells")) +
+    labs(title = "Within-Host Model", color = "Cell Type") + theme(legend.position = "right") + xlab(label = "Time (days post infection)") + 
+    ylab(label = "Cell Number") + theme_classic() + scale_y_log10()
   
   #plotting cytolytic data 
   cytolytic_plot <- ggplot(df_for_40000, aes(x = time/24)) +
@@ -88,14 +98,14 @@ creating_plots <- function(listofdf, i) {
     scale_color_manual(name = "cell type",values = c("Ct" = "red", "Cb" = "green")) +
     geom_point(data = baigent1998, aes(x = time/24, y = Bcell_no), color = "green",   size = 0.3, inherit.aes = FALSE) + 
     geom_point(data = baigent1998, aes(x = time/24, y = Tcell_no), color = "red",   size = 0.3, inherit.aes = FALSE) +
-    labs(x = "Time (days post infection)", y = "Cytolytic cells", title = "Cytolytic Cells") + theme_classic()
+    labs(x = "Time (days post infection)", y = "pp38 Cell Counts per 40,000 cells", title = "Cytolytic Cells") + theme_classic()
   
   
   
   #plot for infected feather follicles
   FFE_plot <- ggplot(data = df_for_ffe, aes(x = time/24, y = IfPer10k)) + geom_line( color = "pink")  +
     labs(title = "WithinHost Delay")  + xlab(label = "Time (Days)") +
-    ylab(label = "Cell Number")  +  scale_y_log10(limits = c(0.01, 1000000000000)) + 
+    ylab(label = "MDV genomes in FFE per 10,000 cells")  +  scale_y_log10(limits = c(0.01, 1000000000000)) + 
     geom_point(data = baigent2016, aes(x = time/24, y = mean_genomes), inherit.aes = FALSE) + 
     theme(panel.grid = element_blank(), panel.background = element_blank(),   legend.text = element_text(size = 12),
           legend.title = element_text(size = 12), axis.line = element_line(color = "black")) +
@@ -103,9 +113,17 @@ creating_plots <- function(listofdf, i) {
     theme_classic()
   
   
+  PBL_plot <- ggplot(data = df_for_PBL, aes(x = time/24, y = PBL_scale_10000 )) + geom_line( color = "red")  +
+    scale_y_log10(limits = c(0.01, 1000000000000)) + 
+    geom_point(data = baigent2016_PBL, aes(x = time/24, y = mean), inherit.aes = FALSE) + 
+    theme(panel.grid = element_blank(), panel.background = element_blank(),   legend.text = element_text(size = 12),
+          legend.title = element_text(size = 12), axis.line = element_line(color = "black")) +
+    labs( y = "MDV genomes in PBL per 10,000 cells", x = "Time (days post infection)", title = "Infected PBL") + 
+    theme_classic()
   
   
   print(everything)
+  print(everything_log)
   print(cytolytic_plot) 
   print(FFE_plot)
   
@@ -168,9 +186,12 @@ time_values <- seq(0, 1080) # hours
 ### DATA FOR PLOT ### 
 baigent2016 <- read_xlsx("Baigent2016/Unvax/baigent2016.xlsx", sheet = 2) %>% mutate(time = time*24)
 
-baigent1998 <- read_xlsx("Baigent1998/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, Bcell_no,Tcell_no)
+baigent1998 <- read_xlsx("Baigent1998/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, Bcell_no,Tcell_no) 
 
-optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDVCombined_v07.csv") %>% 
+baigent2016_PBL <- read_xlsx("Baigent2016/Unvax/PBL_No_Vax_fin.xlsx") %>% filter(time > -1) %>% mutate(time = round(time*24, 0))
+
+
+optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDV_CombinedAddedPBL_v07.csv") %>% 
   filter(Converged == 0) %>% slice_min(Likely, n = 10) %>% arrange(Likely) %>% select(c(beta, alpha, alpha_2,nu_a,nu_f,mu,Pb,q_FFE, size_pp38, size_pp38_Ct, g1,g2, h1,h2, beta_2,nu_b)) 
 
 
@@ -179,7 +200,7 @@ list_of_df <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   parameter_vector(dat = optim_data, i = i)
 }) 
 
-pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDVCombined_v07.pdf", width = 7, height = 5)
+pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDV_CombinedAddedPBL_v07.pdf", width = 7, height = 5)
 
 generating_plots <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   creating_plots(listofdf = list_of_df, i = i)
