@@ -184,7 +184,7 @@ parameter_intervals <- list( beta_2 = log(c(1e-24,1e-18)),
                              h1 = c(559,600),
                              h2 = c(250,800),
                              nu_a = log(c(1e-15,1e-12)),             #Activation rate of T cells by cytolytic B cells (hours)
-                             nu_b = log(c(10,80)),            #Activation rate of T cells by cytolytic T cells (hours)
+                             nu_b = log(c(1e-15,1e-12)),            #Activation rate of T cells by cytolytic T cells (hours)
                              alpha = log(c(0.1,0.5)),  
                              # mu = c(0.01388889, 0.05), 
                              nu_f = log(c(1e-10, 1e-8)),           #previous nu_f = log(c(0.005952381, 0.0104))
@@ -249,13 +249,13 @@ obs_hourspp38 <- c(72,96,120,144) # make sure pp38 times is matching the data lo
 ## DATA ##  
 #cytolytic infection at a given time of B and T cells in Spleen, Thymus, Bursa 
 
-pp38_dat <-  read_xlsx("~/Desktop/WithinHostModel/DataForProject/Baigent1998/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, Bcell_no,Tcell_no)
+pp38_dat <-  read_xlsx("~/work/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, Bcell_no,Tcell_no)
 
-baigent2016 <- read_xlsx("~/Desktop/WithinHostModel/DataForProject/Baigent2016/Unvax/baigent2016.xlsx", sheet = 2 ) %>% arrange(time) 
+baigent2016 <- read_xlsx("~/work/baigent2016.xlsx", sheet = 2 ) %>% arrange(time) 
 
-baigent2016_PBL <- read_xlsx("~/Desktop/WithinHostModel/DataForProject/Baigent2016/Unvax/PBL_No_Vax_fin.xlsx") %>% filter(time > -1) %>% mutate(time = round(time*24, 0))
+baigent2016_PBL <- read_xlsx("~/work/PBL_No_Vax_fin.xlsx") %>% filter(time > -1) %>% mutate(time = round(time*24, 0))
 
-cortes2004_plaque <- read_xlsx("~/Desktop/WithinHostModel/DataForProject/Cortes2004/RB1B_plaqueAssayPchicks.xlsx")  %>% mutate(time = time*24, n_birds = c(
+cortes2004_plaque <- read_xlsx("~/work/RB1B_plaqueAssayPchicks.xlsx")  %>% mutate(time = time*24, n_birds = c(
   4, 6, 4, 7, 2, 10, 2, 9, 5, 2), SE = upperconf/sqrt(n_birds))   
 
 
@@ -299,7 +299,8 @@ optim_for_alpha <- function() {
       alpha_2  = exp(answeroptim$par["alpha_2"]),
       nu_a     = exp(answeroptim$par["nu_a"]),
       nu_b     = exp(answeroptim$par["nu_b"]),
-      nu_f     = exp(answeroptim$par["nu_f"]),
+      nu_f     = exp(answeroptim$par["nu_f"]), 
+      kappa    = exp(answeroptim$par["kappa"]), 
       mu       = parameters_values["mu"],
       g1       = answeroptim$par["g1"],
       g2       = answeroptim$par["g2"],
@@ -328,7 +329,8 @@ optim_for_alpha <- function() {
       beta     = NA_real_,
       beta_2   = NA_real_,
       alpha    = NA_real_,
-      alpha_2  = NA_real_,
+      alpha_2  = NA_real_, 
+      kappa    = NA_real_, 
       nu_a     = NA_real_,
       nu_b     = NA_real_,
       nu_f     = NA_real_,
@@ -339,6 +341,7 @@ optim_for_alpha <- function() {
       h2       = NA_real_,
       Pb       = NA_real_, 
       size_pp38 = NA_real_, 
+      size_pp38_Ct = NA_real_,
       q_FFE    = NA_real_, 
       Converged = NA_integer_,
       ErrorMsg = e$message
@@ -351,7 +354,7 @@ optim_for_alpha <- function() {
 
 
 #how many random parameter sets I want 
-n_per_alpha <-10
+n_per_alpha <-50
 
 library(future)
 library(future.apply)
