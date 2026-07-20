@@ -166,10 +166,10 @@ parameter_intervals <- list(
   # beta_2 = log(c(1e-10,2e-8)),
                              beta = log(c(1e-10, 2e-8)),              
                              alpha_2 =log(c(0.005952381,0.014)),          # assuming slower death rate than B cells  
-                             g1 = c(50,300),
-                             g2 = c(300,800),
-                             h1 = c(559,600),
-                             h2 = c(250,800),
+                             # g1 = c(50,300),
+                             # g2 = c(300,800),
+                             # h1 = c(559,600),
+                             # h2 = c(250,800),
                              nu_a = log(c(1e-8, 3e-8)),             
                              nu_b = log(c(1e-8, 3e-8)),             
                              alpha = log(c(0.01,0.04)),             # bursa‐dependent subpopulations of peripheral B lymphocytes in chicken blood
@@ -194,9 +194,9 @@ parameters_values <- c(
   , alpha = log(0.0104)             #death rate of cytolytic B cells (every 33 hours)
   , alpha_2 = log(0.0104)           #death rate of cytolytic T cells (every 48 hours)
   , theta = 0.8                     #population of activated T cells 
-  , g1 = 10                     #incoming B cells (every 15 hours)
+  , g1 = 0                     #incoming B cells (every 15 hours)
   , g2 = 100    
-  , h1 = 10                      #incoming T cells / determined no incoming T cells 
+  , h1 = 0                      #incoming T cells / determined no incoming T cells 
   , h2 = 100
   , lambda = 0.02380952             # fixing delay rate to (1/(7*24))*4   
   , size_pp38 = log(10)   # new parameter  
@@ -239,9 +239,9 @@ pp38_dat <-  read_xlsx("Baigent1998/baigent1998.xlsx", sheet = 3, na = "NA") %>%
 
 powell1982_plaque <- read_xlsx("Powell1982/Powell1982.xlsx", sheet = 2)%>% mutate(time = dpi*24) 
 
-# ggplot(data = powell1982_plaque, aes(x = time/24, y = pfuPer1e7)) + 
-#   geom_point() + scale_y_log10() + geom_line() + 
-#   geom_errorbar(aes(ymin = SE_upper, ymax = SE_lower)) 
+# ggplot(data = powell1982_plaque, aes(x = time/24, y = pfuPer1e7)) +
+#   geom_point() + scale_y_log10() + geom_line() +
+#   geom_errorbar(aes(ymin = SE_upper, ymax = SE_lower))
 
 #generate random parameters 
 #it can only do one number a time
@@ -305,10 +305,10 @@ optim_for_alpha <- function() {
       nu_f     = exp(answeroptim$par["nu_f"]), 
       kappa    = exp(answeroptim$par["kappa"]), 
       mu       = parameters_values["mu"],
-      g1       = answeroptim$par["g1"],
-      g2       = answeroptim$par["g2"],
-      h1       = answeroptim$par["h1"],
-      h2       = answeroptim$par["h2"],
+      # g1       = answeroptim$par["g1"],
+      # g2       = answeroptim$par["g2"],
+      # h1       = answeroptim$par["h1"],
+      # h2       = answeroptim$par["h2"],
       size_pp38 = exp(answeroptim$par["size_pp38"]),
       size_pp38_Ct = exp(answeroptim$par["size_pp38_Ct"]),
       Converged = answeroptim$convergence,
@@ -334,10 +334,10 @@ optim_for_alpha <- function() {
       nu_b     = NA_real_,
       nu_f     = NA_real_,
       mu       = NA_real_,
-      g1       = NA_real_,
-      g2       = NA_real_,
-      h1       = NA_real_,
-      h2       = NA_real_,
+      # g1       = NA_real_,
+      # g2       = NA_real_,
+      # h1       = NA_real_,
+      # h2       = NA_real_,
       Pb       = NA_real_, 
       Pt       = NA_real_, 
       size_pp38 = NA_real_, 
