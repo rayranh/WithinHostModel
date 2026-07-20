@@ -75,7 +75,7 @@ Likelihood_parts <- function(params){
   
   pars[names(params)] <- params  
   pars["beta"]   <- exp(pars["beta"])
-  # pars["beta_2"] <- exp(pars["beta_2"])  
+  # pars["beta_2"] <- exp(pars["beta_2"])   
   pars["alpha"]   <- exp(pars["alpha"])
   pars["alpha_2"] <- exp(pars["alpha_2"])   
   pars["kappa"] <- exp(pars["kappa"])  
@@ -83,7 +83,10 @@ Likelihood_parts <- function(params){
   pars["nu_b"] <- exp(pars["nu_b"]) 
   pars["nu_f"] <- exp(pars["nu_f"])
   pars["size_pp38"] <- exp(pars["size_pp38"]) 
-  pars["size_pp38_Ct"] <- exp(pars["size_pp38_Ct"])
+  pars["size_pp38_Ct"] <- exp(pars["size_pp38_Ct"]) 
+  
+  pars["Pb"] <- plogis(pars["Pb"])
+  pars["Pt"] <- plogis(pars["Pt"])
   
   
   
@@ -172,7 +175,9 @@ parameter_intervals <- list(
                              # h2 = c(250,800),
                              nu_a = log(c(1e-8, 3e-8)),             
                              nu_b = log(c(1e-8, 3e-8)),             
-                             alpha = log(c(0.01,0.04)),             # bursa‐dependent subpopulations of peripheral B lymphocytes in chicken blood
+                             alpha = log(c(0.01,0.04)),             # bursa‐dependent subpopulations of peripheral B lymphocytes in chicken blood 
+                             Pb = qlogis(c(0.01 , 0.30)),
+                             Pt = qlogis(c(0.01, 0.50)), 
                              # mu = c(0.01388889, 0.05), 
                              nu_f = log(c(1e-10, 1e-8)),            # previous nu_f = log(c(0.005952381, 0.0104))
                              size_pp38 = log(c(0.10,0.5)),          # proposed fitting range based off data: 0.10 - 0.50, approx = 0.20 , 0ld = 0.05, 0.5
@@ -183,8 +188,10 @@ parameter_intervals <- list(
 ## PARAMETERS AND INITIAL VALUES ## 
 parameters_values <- c( 
   beta =  log(6.951463e-07)                  #contact rate with B cells  
-  , Pb = 0.01 
-  , Pt = 0.01
+  # , Pb = 0.01 
+  # , Pt = 0.01
+  , Pb = qlogis(0.01)
+  , Pt = qlogis(0.01)
   # , beta_2 = log(8.532282e-07)                 #contact rate with T cells 
   , nu_a = log(4.668718e-01)             #Activation rate of T cells by cytolytic B cells (hours)
   , nu_b = log(4.467098e-01)             #Activation rate of T cells by cytolytic T cells (hours)
@@ -298,8 +305,10 @@ optim_for_alpha <- function() {
       # beta_2   = exp(answeroptim$par["beta_2"]),
       alpha    = exp(answeroptim$par["alpha"]),
       alpha_2  = exp(answeroptim$par["alpha_2"]), 
-      Pb       = parameters_values["Pb"], 
-      Pt       = parameters_values["Pt"], 
+      # Pb       = parameters_values["Pb"], 
+      # Pt       = parameters_values["Pt"],  
+      Pb = plogis(answeroptim$par["Pb"]),
+      Pt = plogis(answeroptim$par["Pt"]),
       nu_a     = exp(answeroptim$par["nu_a"]),
       nu_b     = exp(answeroptim$par["nu_b"]),
       nu_f     = exp(answeroptim$par["nu_f"]), 
@@ -328,18 +337,18 @@ optim_for_alpha <- function() {
       beta     = NA_real_,
       # beta_2   = NA_real_,
       alpha    = NA_real_,
-      alpha_2  = NA_real_, 
-      kappa    = NA_real_, 
+      alpha_2  = NA_real_,  
+      Pb       = NA_real_, 
+      Pt       = NA_real_, 
       nu_a     = NA_real_,
       nu_b     = NA_real_,
-      nu_f     = NA_real_,
-      mu       = NA_real_,
+      nu_f     = NA_real_, 
+      kappa    = NA_real_, 
+      mu       = NA_real_, 
       # g1       = NA_real_,
       # g2       = NA_real_,
       # h1       = NA_real_,
       # h2       = NA_real_,
-      Pb       = NA_real_, 
-      Pt       = NA_real_, 
       size_pp38 = NA_real_, 
       size_pp38_Ct = NA_real_,
       Converged = NA_integer_,
