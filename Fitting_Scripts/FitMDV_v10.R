@@ -22,25 +22,48 @@ setwd("~/Desktop/WithinHostModel/DataForProject/")
 ## SIR MODEL ## 
 sir_equations <- function(time, variables, parameters) {
   with(as.list(c(variables, parameters)), { #turning initial values and parms into vectors and then list and then applying to below equations // include death of B cells + host response death apoptosis? 
-    dB <-  -beta*Cb*B_cells - beta_2*Ct*B_cells - beta_2*Lr*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
+    dB <-  -beta*Cb*B_cells - beta*Ct*B_cells - beta*Lr*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
     dBr <- (1-Pb)*(g1*(Cb+Ct+Lr)/(g2+(Cb+Ct+Lr))) #probably should have alpha for cytolytic infection 
-    dCb <- beta*Cb*B_cells + beta_2*Ct*B_cells + beta_2*Lr*B_cells - alpha*Cb 
+    dCb <- beta*Cb*B_cells + beta*Ct*B_cells + beta*Lr*B_cells - alpha*Cb 
     dT <- -nu_a*Cb*T_cells - nu_b*Ct*T_cells - nu_b*Lr*T_cells + Pt*(h1*(Cb+Ct)/(h2+(Cb+Ct))) 
     dTr <- (1 - Pt)*(h1*(Cb+Ct)/(h2+(Cb+Ct))) 
-    dAt <- nu_a*Cb*T_cells + nu_b*Ct*T_cells + nu_b*Lr*T_cells - beta_2*Ct*At - beta*Cb*At - beta_2*Lr*At  # beta = rate of activated T cells by Ct and Cb cells   
-    dLt <- theta *(beta_2*Ct*At + beta*Cb*At + beta_2*Lr*At)  - lambda*Lt 
+    dAt <- nu_a*Cb*T_cells + nu_b*Ct*T_cells + nu_b*Lr*T_cells - beta*Ct*At - beta*Cb*At - beta*Lr*At  # beta = rate of activated T cells by Ct and Cb cells   
+    dLt <- theta *(beta*Ct*At + beta*Cb*At + beta*Lr*At)  - lambda*Lt 
     dLt2 <- lambda*Lt - lambda*Lt2 
     dLt3 <- lambda*Lt2 - lambda*Lt3 
     dLt4 <- lambda*Lt3 - lambda*Lt4
     dLt5 <- lambda*Lt4 - mu*Lt5 - kappa*Lt5  
     dLr <-  kappa*Lt5 - alpha_2*Lr 
-    dCt <-  (1-theta)*(beta_2*Ct*At + beta*Cb*At+ beta_2*Lr*At) - alpha_2*Ct
+    dCt <-  (1-theta)*(beta*Ct*At + beta*Cb*At+ beta*Lr*At) - alpha_2*Ct
     dZ <- mu*Lt5
     df <- -nu_f*Lr*f
     dIf <- nu_f*Lr*f
     return(list(c(dB, dCb,dBr, dT,dTr, dAt,dLt,dLt2, dLt3,dLt4, dLt5, dLr, dCt, dZ, df,dIf)))
   }) 
 }  
+
+# with beta 
+# sir_equations <- function(time, variables, parameters) {
+#   with(as.list(c(variables, parameters)), { #turning initial values and parms into vectors and then list and then applying to below equations // include death of B cells + host response death apoptosis? 
+#     dB <-  -beta*Cb*B_cells - beta_2*Ct*B_cells - beta_2*Lr*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
+#     dBr <- (1-Pb)*(g1*(Cb+Ct+Lr)/(g2+(Cb+Ct+Lr))) #probably should have alpha for cytolytic infection 
+#     dCb <- beta*Cb*B_cells + beta_2*Ct*B_cells + beta_2*Lr*B_cells - alpha*Cb 
+#     dT <- -nu_a*Cb*T_cells - nu_b*Ct*T_cells - nu_b*Lr*T_cells + Pt*(h1*(Cb+Ct)/(h2+(Cb+Ct))) 
+#     dTr <- (1 - Pt)*(h1*(Cb+Ct)/(h2+(Cb+Ct))) 
+#     dAt <- nu_a*Cb*T_cells + nu_b*Ct*T_cells + nu_b*Lr*T_cells - beta_2*Ct*At - beta*Cb*At - beta_2*Lr*At  # beta = rate of activated T cells by Ct and Cb cells   
+#     dLt <- theta *(beta_2*Ct*At + beta*Cb*At + beta_2*Lr*At)  - lambda*Lt 
+#     dLt2 <- lambda*Lt - lambda*Lt2 
+#     dLt3 <- lambda*Lt2 - lambda*Lt3 
+#     dLt4 <- lambda*Lt3 - lambda*Lt4
+#     dLt5 <- lambda*Lt4 - mu*Lt5 - kappa*Lt5  
+#     dLr <-  kappa*Lt5 - alpha_2*Lr 
+#     dCt <-  (1-theta)*(beta_2*Ct*At + beta*Cb*At+ beta_2*Lr*At) - alpha_2*Ct
+#     dZ <- mu*Lt5
+#     df <- -nu_f*Lr*f
+#     dIf <- nu_f*Lr*f
+#     return(list(c(dB, dCb,dBr, dT,dTr, dAt,dLt,dLt2, dLt3,dLt4, dLt5, dLr, dCt, dZ, df,dIf)))
+#   }) 
+# }  
 
 #### LIKELIHOOD FUNCTION #### 
 
@@ -52,7 +75,7 @@ Likelihood_parts <- function(params){
   
   pars[names(params)] <- params  
   pars["beta"]   <- exp(pars["beta"])
-  pars["beta_2"] <- exp(pars["beta_2"])  
+  # pars["beta_2"] <- exp(pars["beta_2"])  
   pars["alpha"]   <- exp(pars["alpha"])
   pars["alpha_2"] <- exp(pars["alpha_2"])   
   pars["kappa"] <- exp(pars["kappa"])  
@@ -139,9 +162,10 @@ Likelihood <- function(params){
 #create intervals for numbers  
 
 
-parameter_intervals <- list( beta_2 = log(c(1e-10,2e-8)), 
+parameter_intervals <- list( 
+  # beta_2 = log(c(1e-10,2e-8)),
                              beta = log(c(1e-10, 2e-8)),              
-                             alpha_2 =log(c(0.008,0.014)),          # assuming slower death rate than B cells  
+                             alpha_2 =log(c(0.005952381,0.014)),          # assuming slower death rate than B cells  
                              g1 = c(50,300),
                              g2 = c(300,800),
                              h1 = c(559,600),
@@ -161,12 +185,12 @@ parameters_values <- c(
   beta =  log(6.951463e-07)                  #contact rate with B cells  
   , Pb = 0.01 
   , Pt = 0.01
-  , beta_2 = log(8.532282e-07)                 #contact rate with T cells 
+  # , beta_2 = log(8.532282e-07)                 #contact rate with T cells 
   , nu_a = log(4.668718e-01)             #Activation rate of T cells by cytolytic B cells (hours)
   , nu_b = log(4.467098e-01)             #Activation rate of T cells by cytolytic T cells (hours)
   , nu_f = log(1e-11)                    #Infection rate of follicular cells (hours) 
   , kappa = log(1e-6)
-  , mu = 1/72                       #Rate of Tumor Cells (every 72 hours)
+  , mu = 1/8                       #Rate of Tumor Cells (every 72 hours)
   , alpha = log(0.0104)             #death rate of cytolytic B cells (every 33 hours)
   , alpha_2 = log(0.0104)           #death rate of cytolytic T cells (every 48 hours)
   , theta = 0.8                     #population of activated T cells 
@@ -271,7 +295,7 @@ optim_for_alpha <- function() {
       Likely_pp38 = parts$neg_sum_loglike_pp38, 
       Likely_PFU = parts$neg_sum_loglike_PFU,
       beta     = exp(answeroptim$par["beta"]),
-      beta_2   = exp(answeroptim$par["beta_2"]),
+      # beta_2   = exp(answeroptim$par["beta_2"]),
       alpha    = exp(answeroptim$par["alpha"]),
       alpha_2  = exp(answeroptim$par["alpha_2"]), 
       Pb       = parameters_values["Pb"], 
@@ -302,7 +326,7 @@ optim_for_alpha <- function() {
       Likely_pp38 = NA_real_,
       Likely_PFU = NA_real_, 
       beta     = NA_real_,
-      beta_2   = NA_real_,
+      # beta_2   = NA_real_,
       alpha    = NA_real_,
       alpha_2  = NA_real_, 
       kappa    = NA_real_, 
