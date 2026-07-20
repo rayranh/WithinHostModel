@@ -59,8 +59,8 @@ Likelihood_parts <- function(params){
   pars["nu_a"] <- exp(pars["nu_a"])
   pars["nu_b"] <- exp(pars["nu_b"]) 
   pars["nu_f"] <- exp(pars["nu_f"])
-  # pars["size_pp38"] <- exp(pars["size_pp38"]) 
-  # pars["size_pp38_Ct"] <- exp(pars["size_pp38_Ct"])
+  pars["size_pp38"] <- exp(pars["size_pp38"]) 
+  pars["size_pp38_Ct"] <- exp(pars["size_pp38_Ct"])
   
   
   
@@ -151,8 +151,8 @@ parameter_intervals <- list( beta_2 = log(c(1e-10,2e-8)),
                              alpha = log(c(0.01,0.04)),             # bursa‐dependent subpopulations of peripheral B lymphocytes in chicken blood
                              # mu = c(0.01388889, 0.05), 
                              nu_f = log(c(1e-10, 1e-8)),            # previous nu_f = log(c(0.005952381, 0.0104))
-                             # size_pp38 = log(c(0.10,0.5)),          # proposed fitting range based off data: 0.10 - 0.50, approx = 0.20 , 0ld = 0.05, 0.5
-                             # size_pp38_Ct = log(c(0.10, 0.5)),       # proposed fitting range based off data: 0.10 - 0.50, approx = 0.17 , 0ld = 0.05 , 0.5 
+                             size_pp38 = log(c(0.10,0.5)),          # proposed fitting range based off data: 0.10 - 0.50, approx = 0.20 , 0ld = 0.05, 0.5
+                             size_pp38_Ct = log(c(0.10,0.5)),       # proposed fitting range based off data: 0.10 - 0.50, approx = 0.17 , 0ld = 0.05 , 0.5 
                              kappa = log(c(1e-5, 1.3e-4)))          # Temperature-induced reactivation of Marek's disease virus-transformed T cells ex vivo   
 
 
@@ -166,7 +166,7 @@ parameters_values <- c(
   , nu_b = log(4.467098e-01)             #Activation rate of T cells by cytolytic T cells (hours)
   , nu_f = log(1e-11)                    #Infection rate of follicular cells (hours) 
   , kappa = log(1e-6)
-  , mu = 1/8                       #Rate of Tumor Cells (every 72 hours)
+  , mu = 1/72                       #Rate of Tumor Cells (every 72 hours)
   , alpha = log(0.0104)             #death rate of cytolytic B cells (every 33 hours)
   , alpha_2 = log(0.0104)           #death rate of cytolytic T cells (every 48 hours)
   , theta = 0.8                     #population of activated T cells 
@@ -175,8 +175,8 @@ parameters_values <- c(
   , h1 = 10                      #incoming T cells / determined no incoming T cells 
   , h2 = 100
   , lambda = 0.02380952             # fixing delay rate to (1/(7*24))*4   
-  , size_pp38 = log(0.20)   # new parameter  
-  , size_pp38_Ct = log(0.17) 
+  , size_pp38 = log(10)   # new parameter  
+  , size_pp38_Ct = log(10) 
 )
 
 
@@ -285,10 +285,8 @@ optim_for_alpha <- function() {
       g2       = answeroptim$par["g2"],
       h1       = answeroptim$par["h1"],
       h2       = answeroptim$par["h2"],
-      # size_pp38 = exp(answeroptim$par["size_pp38"]),
-      # size_pp38_Ct = exp(answeroptim$par["size_pp38_Ct"]),
-      size_pp38 = answeroptim$par["size_pp38"],
-      size_pp38_Ct = answeroptim$par["size_pp38_Ct"],
+      size_pp38 = exp(answeroptim$par["size_pp38"]),
+      size_pp38_Ct = exp(answeroptim$par["size_pp38_Ct"]),
       Converged = answeroptim$convergence,
       ErrorMsg = NA_character_
     )
