@@ -150,8 +150,8 @@ creating_plots <- function(listofdf, i) {
     geom_line(aes(y = pfuCells, color = "pfu")) + 
     scale_color_manual(name = "cell type", values = c("pfu" = "pink")) + 
     geom_point(data = powell1982_plaque, aes(x = time/24, y = pfuPer1e7)) +
-    geom_errorbar(data = powell1982_plaque, aes(ymin = SE_upper, ymax = SE_lower)) +  
-    geom_line(data = powell1982_plaque, aes(x = time/24, y = pfuPer1e7)) + scale_y_log10() + 
+    geom_errorbar(data = powell1982_plaque, aes(ymin = SE_lower, ymax = SE_upper)) +  
+    geom_line(data = powell1982_plaque, aes(x = time/24, y = pfuPer1e7)) + coord_cartesian(ylim = c(0, 1000)) + 
     labs(x = "Time (days post infection)", y = "PFU/10^7", title = "PFU Cells") + theme_classic()
   
   print(everything)
@@ -184,9 +184,9 @@ parameters_values <- c(
   , alpha = 0.0104          #death rate of cytolytic B cells (every 33 hours)
   , alpha_2 = 0.0104          #death rate of cytolytic T cells (every 48 hours)
   , theta = 0.8                     #population of activated T cells 
-  , g1 = 10                    #incoming B cells (every 15 hours)
+  , g1 = 0                    #incoming B cells (every 15 hours)
   , g2 = 100    
-  , h1 = 10                      #incoming T cells / determined no incoming T cells 
+  , h1 = 0                      #incoming T cells / determined no incoming T cells 
   , h2 = 100
   , lambda = 0.02380952             # fixing delay rate to (1/(7*24))*4   
   , size_pp38 = 10  # new parameter 
@@ -223,9 +223,9 @@ baigent1998 <- read_xlsx("Baigent1998/baigent1998.xlsx", sheet = 3, na = "NA") %
 
 powell1982_plaque <- read_xlsx("Powell1982/Powell1982.xlsx", sheet = 2)%>% mutate(time = dpi*24) 
 
-optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDV_v10_HPRS16_20260720_122441.csv") %>% 
+optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDV_v10_HPRS16_20260720_162650.csv") %>% 
   filter(Converged == 0) %>% slice_min(Likely, n = 10) %>% arrange(Likely) %>% 
-  select(c(beta, alpha, alpha_2,nu_a,nu_f,mu,Pb, size_pp38, size_pp38_Ct, g1,g2, h1,h2,nu_b, kappa, Pt)) 
+  select(c(beta, alpha, alpha_2,nu_a,nu_f,mu,Pb, size_pp38, size_pp38_Ct,nu_b, kappa, Pt)) 
 
 
 #creating a list of dataframes set in motion by this function made on the fly that takes optim data and i takes in seq_len(nrow(()))
@@ -233,7 +233,7 @@ list_of_df <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   parameter_vector(dat = optim_data, i = i)
 }) 
 
-pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDV_v10_HPRS16_20260720_122441.pdf", width = 7, height = 5)
+pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDV_v10_HPRS16_20260720_162650.pdf", width = 7, height = 5)
 
 generating_plots <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   creating_plots(listofdf = list_of_df, i = i)
