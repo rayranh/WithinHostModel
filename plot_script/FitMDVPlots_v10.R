@@ -16,27 +16,51 @@ sir_equations <- function(time, variables, parameters) {
     dB <-  -beta*Cb*B_cells - beta_2*Ct*B_cells - beta_2*Lr*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
     dBr <- (1-Pb)*(g1*(Cb+Ct+Lr)/(g2+(Cb+Ct+Lr))) #probably should have alpha for cytolytic infection 
     dCb <- beta*Cb*B_cells + beta_2*Ct*B_cells + beta_2*Lr*B_cells - alpha*Cb 
-    dT <- -nu_a*Cb*T_cells - nu_b*Ct*T_cells - nu_b*Lr*T_cells + (h1*(Cb+Ct)/(h2+(Cb+Ct)))
+    dT <- -nu_a*Cb*T_cells - nu_b*Ct*T_cells - nu_b*Lr*T_cells + Pt*(h1*(Cb+Ct)/(h2+(Cb+Ct))) 
+    dTr <- (1 - Pt)*(h1*(Cb+Ct)/(h2+(Cb+Ct))) 
     dAt <- nu_a*Cb*T_cells + nu_b*Ct*T_cells + nu_b*Lr*T_cells - beta_2*Ct*At - beta*Cb*At - beta_2*Lr*At  # beta = rate of activated T cells by Ct and Cb cells   
     dLt <- theta *(beta_2*Ct*At + beta*Cb*At + beta_2*Lr*At)  - lambda*Lt 
     dLt2 <- lambda*Lt - lambda*Lt2 
     dLt3 <- lambda*Lt2 - lambda*Lt3 
     dLt4 <- lambda*Lt3 - lambda*Lt4
     dLt5 <- lambda*Lt4 - mu*Lt5 - kappa*Lt5  
-    dLr <-  kappa*Lt5 - alpha_2*Lr
+    dLr <-  kappa*Lt5 - alpha_2*Lr 
     dCt <-  (1-theta)*(beta_2*Ct*At + beta*Cb*At+ beta_2*Lr*At) - alpha_2*Ct
     dZ <- mu*Lt5
     df <- -nu_f*Lr*f
     dIf <- nu_f*Lr*f
-    return(list(c(dB, dCb,dBr, dT, dAt,dLt,dLt2, dLt3,dLt4, dLt5, dLr, dCt, dZ, df,dIf)))
+    return(list(c(dB, dCb,dBr, dT,dTr, dAt,dLt,dLt2, dLt3,dLt4, dLt5, dLr, dCt, dZ, df,dIf)))
   }) 
 }  
 
+# sir_equations <- function(time, variables, parameters) {
+#   with(as.list(c(variables, parameters)), { #turning initial values and parms into vectors and then list and then applying to below equations // include death of B cells + host response death apoptosis? 
+#     dB <-  -beta*Cb*B_cells - beta_2*Ct*B_cells - beta_2*Lr*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
+#     dBr <- (1-Pb)*(g1*(Cb+Ct+Lr)/(g2+(Cb+Ct+Lr))) #probably should have alpha for cytolytic infection 
+#     dCb <- beta*Cb*B_cells + beta_2*Ct*B_cells + beta_2*Lr*B_cells - alpha*Cb 
+#     dT <- -nu_a*Cb*T_cells - nu_b*Ct*T_cells - nu_b*Lr*T_cells + Pt*(h1*(Cb+Ct)/(h2+(Cb+Ct))) 
+#     dTr <- (1 - Pt)*(h1*(Cb+Ct)/(h2+(Cb+Ct))) 
+#     dAt <- nu_a*Cb*T_cells + nu_b*Ct*T_cells + nu_b*Lr*T_cells - beta_2*Ct*At - beta*Cb*At - beta_2*Lr*At  # beta = rate of activated T cells by Ct and Cb cells   
+#     dLt <- theta *(beta_2*Ct*At + beta*Cb*At + beta_2*Lr*At)  - lambda*Lt 
+#     dLt2 <- lambda*Lt - lambda*Lt2 
+#     dLt3 <- lambda*Lt2 - lambda*Lt3 
+#     dLt4 <- lambda*Lt3 - lambda*Lt4
+#     dLt5 <- lambda*Lt4 - mu*Lt5 - kappa*Lt5  
+#     dLr <-  kappa*Lt5 - alpha_2*Lr 
+#     dCt <-  (1-theta)*(beta_2*Ct*At + beta*Cb*At+ beta_2*Lr*At) - alpha_2*Ct
+#     dZ <- mu*Lt5
+#     df <- -nu_f*Lr*f
+#     dIf <- nu_f*Lr*f
+#     return(list(c(dB, dCb,dBr, dT,dTr, dAt,dLt,dLt2, dLt3,dLt4, dLt5, dLr, dCt, dZ, df,dIf)))
+#   }) 
+# }  
 
 parameter_vector <- function(dat,i) { 
   param_vector <- unlist(dat[i,])  
   init <- initial_values 
   B0 <-  2.4e9/3 
+  T0 <- 7.4e8 / 3
+  
   
   pars <- parameters_values
   pars[names(param_vector)] <- param_vector 
@@ -44,7 +68,8 @@ parameter_vector <- function(dat,i) {
   init["Br"] <- B0*(1 - pars["Pb"])  
   
   
-  
+  init["T_cells"] <- T0*pars["Pt"] 
+  init["Tr"] <- T0* (1 - pars["Pt"])
   
   # run model
   results <- as.data.frame(
@@ -68,10 +93,10 @@ creating_plots <- function(listofdf, i) {
   df2 <- pivot_longer(df, cols = -time, names_to = "variable", values_to = "value")
   
   df_for_40000 <- df %>% mutate(
-                                cytolytic_scale_40000_cb = ((Cb)/(B_cells+Cb+Ct+T_cells+At+Br+Lt+Lt2+Lt3+Lt4+Lt5+Lr))* 40000, 
-                                cytolytic_scale_40000_ct = ((Ct+Lr)/(B_cells+Cb+Ct+T_cells+At+Br+Lt+Lt2+Lt3+Lt4+Lt5+Lr))* 40000)  
+                                cytolytic_scale_40000_cb = ((Cb)/(B_cells+Cb+Ct+T_cells+At+Br+Lt+Lt2+Lt3+Lt4+Lt5+Lr+Tr))* 40000, 
+                                cytolytic_scale_40000_ct = ((Ct+Lr)/(B_cells+Cb+Ct+T_cells+At+Br+Lt+Lt2+Lt3+Lt4+Lt5+Lr+Tr))* 40000)  
   
-  df_pfu <- df %>% mutate(pfuCells = (Cb + Ct + Lr)/(B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5 + Lr) * 10000000) 
+  df_pfu <- df %>% mutate(pfuCells = (Cb + Ct + Lr)/(B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5 + Lr + Tr) * 10000000) 
   
   df_cyto_T <- df2 %>% filter(variable %in% c("T_cells", "At", "Lt5", "Ct", "Lr")) 
   
@@ -148,7 +173,8 @@ creating_plots <- function(listofdf, i) {
 parameters_values <- c( 
   beta =  6.951463e-07                  #contact rate with B cells   
   ,beta_2 =  6.951463e-07                  #contact rate with B cells
-  , Pb = 0.005
+  , Pb = 0.01 
+  , Pt = 0.01
   , nu_a = 0.1666667            #Activation rate of T cells by cytolytic B cells (hours) 
   , nu_b = 0.4467098
   , nu_f = 0.008                    #Infection rate of follicular cells (hours) 
@@ -171,7 +197,8 @@ initial_values <- c(
   B_cells = 2.4e9/3    # from three organs 2.4e6/3 
   , Cb = 1  
   , Br = 2.4e9/3       #same initial proportion here infected as in model (well mixed marbles ex) 
-  , T_cells = 7.4e8/3  # from three organs 1.5e6/3 
+  , T_cells = 7.4e8/3  # from three organs 1.5e6/3  
+  , Tr = 0 
   , At = 0 
   , Lt = 0 
   , Lt2 = 0 
@@ -195,8 +222,9 @@ baigent1998 <- read_xlsx("Baigent1998/baigent1998.xlsx", sheet = 3, na = "NA") %
 
 powell1982_plaque <- read_xlsx("Powell1982/Powell1982.xlsx", sheet = 2)%>% mutate(time = dpi*24) 
 
-optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDV_v10_HPRS16_20260719_211940.csv") %>% 
-  filter(Converged == 0) %>% slice_min(Likely, n = 10) %>% arrange(Likely) %>% select(c(beta, alpha, alpha_2,nu_a,nu_f,mu,Pb, size_pp38, size_pp38_Ct, g1,g2, h1,h2, beta_2,nu_b, kappa)) 
+optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDV_v10_HPRS16_20260720_111823.csv") %>% 
+  filter(Converged == 0) %>% slice_min(Likely, n = 10) %>% arrange(Likely) %>% 
+  select(c(beta, alpha, alpha_2,nu_a,nu_f,mu,Pb, size_pp38, size_pp38_Ct, g1,g2, h1,h2, beta_2,nu_b, kappa, Pt)) 
 
 
 #creating a list of dataframes set in motion by this function made on the fly that takes optim data and i takes in seq_len(nrow(()))
@@ -204,7 +232,7 @@ list_of_df <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   parameter_vector(dat = optim_data, i = i)
 }) 
 
-pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDV_v10_HPRS16_20260719_203625.pdf", width = 7, height = 5)
+pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDV_v10_HPRS16_20260720_111823.pdf", width = 7, height = 5)
 
 generating_plots <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   creating_plots(listofdf = list_of_df, i = i)
