@@ -136,23 +136,24 @@ Likelihood <- function(params){
   Likelihood_parts(params)$neg_LogLHoodStor
 }
 
-#create intervals for numbers 
+#create intervals for numbers  
 
-parameter_intervals <- list( beta_2 = log(c(1e-10,1e-8)), 
-                             beta = log(c(1e-10, 1e-8)), 
-                             alpha_2 =log(c(0.1, 0.8)), 
+
+parameter_intervals <- list( beta_2 = log(c(1e-10,2e-8)), 
+                             beta = log(c(1e-10, 2e-8)),              
+                             alpha_2 =log(c(0.008,0.014)),          # assuming slower death rate than B cells  
                              g1 = c(50,300),
                              g2 = c(300,800),
                              h1 = c(559,600),
                              h2 = c(250,800),
-                             nu_a = log(c(1e-15,1e-12)),             #Activation rate of T cells by cytolytic B cells (hours)
-                             nu_b = log(c(1e-15,1e-12)),            #Activation rate of T cells by cytolytic T cells (hours)
-                             alpha = log(c(0.1,0.5)),  
+                             nu_a = log(c(1e-8, 3e-8)),             
+                             nu_b = log(c(1e-8, 3e-8)),             
+                             alpha = log(c(0.01,0.04)),             # bursa‐dependent subpopulations of peripheral B lymphocytes in chicken blood
                              # mu = c(0.01388889, 0.05), 
-                             nu_f = log(c(1e-10, 1e-8)),           #previous nu_f = log(c(0.005952381, 0.0104))
-                             size_pp38 = log(c(0.05,0.5)),
-                             size_pp38_Ct = log(c(0.05,0.5)), 
-                             kappa = log(c(1e-6, 3e-2)))  #taken from baigent pp38 data 
+                             nu_f = log(c(1e-10, 1e-8)),            # previous nu_f = log(c(0.005952381, 0.0104))
+                             size_pp38 = log(c(0.05,0.5)),          # proposed fitting range based off data: 0.10 - 0.50, approx = 0.20 , 0ld = 0.05, 0.5
+                             size_pp38_Ct = log(c(0.05,0.5)),       # proposed fitting range based off data: 0.10 - 0.50, approx = 0.17 , 0ld = 0.05 , 0.5 
+                             kappa = log(c(1e-5, 1.3e-4)))          # Temperature-induced reactivation of Marek's disease virus-transformed T cells ex vivo   
 
 
 ## PARAMETERS AND INITIAL VALUES ## 
@@ -233,6 +234,21 @@ making_a_set <- function() {
   random_parameters
 }  
 
+
+lower_bounds <- map_dbl(
+  parameter_intervals,
+  ~ .x[1]
+)
+
+upper_bounds <- map_dbl(
+  parameter_intervals,
+  ~ .x[2]
+)
+
+
+
+
+
 optim_for_alpha <- function() {
   starting_parms <- making_a_set()
   
@@ -240,8 +256,12 @@ optim_for_alpha <- function() {
     answeroptim <- optim(
       par = starting_parms,
       fn  = Likelihood,
-      method = "Nelder-Mead",
+      method = "L-BFGS-B",
+      lower = lower_bounds,
+      upper = upper_bounds,
       control = list(maxit = 20000)
+      # method = "Nelder-Mead",
+      # control = list(maxit = 20000)
     ) 
     
     parts <- Likelihood_parts(answeroptim$par)
