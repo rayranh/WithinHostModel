@@ -172,7 +172,7 @@ parameters_values <- c(
   , Pt = qlogis(0.01)
   # , beta_2 = log(8.532282e-07)                 #contact rate with T cells 
   , nu_a = log(4.668718e-01)             #Activation rate of T cells by cytolytic B cells (hours)
-  , nu_b = log(4.467098e-01)             #Activation rate of T cells by cytolytic T cells (hours)
+  # , nu_b = log(4.467098e-01)             #Activation rate of T cells by cytolytic T cells (hours)
   , nu_f = log(1e-11)                    #Infection rate of follicular cells (hours) 
   , kappa = log(1e-6)
   , mu = 1/8                       #Rate of Tumor Cells (every 72 hours)
