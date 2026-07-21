@@ -25,9 +25,9 @@ sir_equations <- function(time, variables, parameters) {
     dB <-  -beta*Cb*B_cells - beta*Ct*B_cells - beta*Lr*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
     dBr <- (1-Pb)*(g1*(Cb+Ct+Lr)/(g2+(Cb+Ct+Lr))) #probably should have alpha for cytolytic infection 
     dCb <- beta*Cb*B_cells + beta*Ct*B_cells + beta*Lr*B_cells - alpha*Cb 
-    dT <- -nu_a*Cb*T_cells - nu_b*Ct*T_cells - nu_b*Lr*T_cells + Pt*(h1*(Cb+Ct)/(h2+(Cb+Ct))) 
+    dT <- -nu_a*Cb*T_cells - nu_a*Ct*T_cells - nu_a*Lr*T_cells + Pt*(h1*(Cb+Ct)/(h2+(Cb+Ct))) 
     dTr <- (1 - Pt)*(h1*(Cb+Ct)/(h2+(Cb+Ct))) 
-    dAt <- nu_a*Cb*T_cells + nu_b*Ct*T_cells + nu_b*Lr*T_cells - beta*Ct*At - beta*Cb*At - beta*Lr*At  # beta = rate of activated T cells by Ct and Cb cells   
+    dAt <- nu_a*Cb*T_cells + nu_a*Ct*T_cells + nu_a*Lr*T_cells - beta*Ct*At - beta*Cb*At - beta*Lr*At  # beta = rate of activated T cells by Ct and Cb cells   
     dLt <- theta *(beta*Ct*At + beta*Cb*At + beta*Lr*At)  - lambda*Lt 
     dLt2 <- lambda*Lt - lambda*Lt2 
     dLt3 <- lambda*Lt2 - lambda*Lt3 
@@ -42,28 +42,6 @@ sir_equations <- function(time, variables, parameters) {
   }) 
 }  
 
-# with beta 
-# sir_equations <- function(time, variables, parameters) {
-#   with(as.list(c(variables, parameters)), { #turning initial values and parms into vectors and then list and then applying to below equations // include death of B cells + host response death apoptosis? 
-#     dB <-  -beta*Cb*B_cells - beta_2*Ct*B_cells - beta_2*Lr*B_cells + Pb*(g1*(Cb+Ct)/(g2+(Cb+Ct))) # beta = rate of cytolytically infected B cells by Cb and Ct  
-#     dBr <- (1-Pb)*(g1*(Cb+Ct+Lr)/(g2+(Cb+Ct+Lr))) #probably should have alpha for cytolytic infection 
-#     dCb <- beta*Cb*B_cells + beta_2*Ct*B_cells + beta_2*Lr*B_cells - alpha*Cb 
-#     dT <- -nu_a*Cb*T_cells - nu_b*Ct*T_cells - nu_b*Lr*T_cells + Pt*(h1*(Cb+Ct)/(h2+(Cb+Ct))) 
-#     dTr <- (1 - Pt)*(h1*(Cb+Ct)/(h2+(Cb+Ct))) 
-#     dAt <- nu_a*Cb*T_cells + nu_b*Ct*T_cells + nu_b*Lr*T_cells - beta_2*Ct*At - beta*Cb*At - beta_2*Lr*At  # beta = rate of activated T cells by Ct and Cb cells   
-#     dLt <- theta *(beta_2*Ct*At + beta*Cb*At + beta_2*Lr*At)  - lambda*Lt 
-#     dLt2 <- lambda*Lt - lambda*Lt2 
-#     dLt3 <- lambda*Lt2 - lambda*Lt3 
-#     dLt4 <- lambda*Lt3 - lambda*Lt4
-#     dLt5 <- lambda*Lt4 - mu*Lt5 - kappa*Lt5  
-#     dLr <-  kappa*Lt5 - alpha_2*Lr 
-#     dCt <-  (1-theta)*(beta_2*Ct*At + beta*Cb*At+ beta_2*Lr*At) - alpha_2*Ct
-#     dZ <- mu*Lt5
-#     df <- -nu_f*Lr*f
-#     dIf <- nu_f*Lr*f
-#     return(list(c(dB, dCb,dBr, dT,dTr, dAt,dLt,dLt2, dLt3,dLt4, dLt5, dLr, dCt, dZ, df,dIf)))
-#   }) 
-# }  
 
 #### LIKELIHOOD FUNCTION #### 
 
@@ -80,7 +58,7 @@ Likelihood_parts <- function(params){
   pars["alpha_2"] <- exp(pars["alpha_2"])   
   pars["kappa"] <- exp(pars["kappa"])  
   pars["nu_a"] <- exp(pars["nu_a"])
-  pars["nu_b"] <- exp(pars["nu_b"]) 
+  # pars["nu_b"] <- exp(pars["nu_b"]) 
   pars["nu_f"] <- exp(pars["nu_f"])
   pars["size_pp38"] <- exp(pars["size_pp38"]) 
   pars["size_pp38_Ct"] <- exp(pars["size_pp38_Ct"]) 
@@ -117,7 +95,7 @@ Likelihood_parts <- function(params){
     ) %>% filter(time %in% obs_hourspp38) 
   
   
- 
+  
   pp38_dbinom_Cb <- pp38_dat %>% filter(time %in% obs_hourspp38) %>% 
     left_join(infprob %>% dplyr::select(time, inf_cells_Cb), by = "time") 
   
@@ -167,22 +145,22 @@ Likelihood <- function(params){
 
 parameter_intervals <- list( 
   # beta_2 = log(c(1e-10,2e-8)),
-                             beta = log(c(1e-10, 2e-8)),              
-                             alpha_2 =log(c(0.005952381,0.014)),          # assuming slower death rate than B cells  
-                             # g1 = c(50,300),
-                             # g2 = c(300,800),
-                             # h1 = c(559,600),
-                             # h2 = c(250,800),
-                             nu_a = log(c(1e-8, 3e-8)),             
-                             nu_b = log(c(1e-8, 3e-8)),             
-                             alpha = log(c(0.01,0.04)),             # bursa‐dependent subpopulations of peripheral B lymphocytes in chicken blood 
-                             Pb = qlogis(c(0.01 , 0.30)),
-                             Pt = qlogis(c(0.01, 0.50)), 
-                             # mu = c(0.01388889, 0.05), 
-                             nu_f = log(c(1e-10, 1e-8)),            # previous nu_f = log(c(0.005952381, 0.0104))
-                             size_pp38 = log(c(0.10,0.5)),          # proposed fitting range based off data: 0.10 - 0.50, approx = 0.20 , 0ld = 0.05, 0.5
-                             size_pp38_Ct = log(c(0.10,0.5)),       # proposed fitting range based off data: 0.10 - 0.50, approx = 0.17 , 0ld = 0.05 , 0.5 
-                             kappa = log(c(1e-5, 1.3e-4)))          # Temperature-induced reactivation of Marek's disease virus-transformed T cells ex vivo   
+  beta = log(c(1e-10, 2e-8)),              
+  alpha_2 =log(c(0.005952381,0.014)),          # assuming slower death rate than B cells  
+  # g1 = c(50,300),
+  # g2 = c(300,800),
+  # h1 = c(559,600),
+  # h2 = c(250,800),
+  nu_a = log(c(1e-8, 3e-8)),             
+  # nu_b = log(c(1e-8, 3e-8)),             
+  alpha = log(c(0.01,0.04)),             # bursa‐dependent subpopulations of peripheral B lymphocytes in chicken blood 
+  Pb = qlogis(c(0.01 , 0.30)),
+  Pt = qlogis(c(0.01, 0.50)), 
+  # mu = c(0.01388889, 0.05), 
+  nu_f = log(c(1e-10, 1e-8)),            # previous nu_f = log(c(0.005952381, 0.0104))
+  size_pp38 = log(c(0.10,0.5)),          # proposed fitting range based off data: 0.10 - 0.50, approx = 0.20 , 0ld = 0.05, 0.5
+  size_pp38_Ct = log(c(0.10,0.5)),       # proposed fitting range based off data: 0.10 - 0.50, approx = 0.17 , 0ld = 0.05 , 0.5 
+  kappa = log(c(1e-5, 1.3e-4)))          # Temperature-induced reactivation of Marek's disease virus-transformed T cells ex vivo   
 
 
 ## PARAMETERS AND INITIAL VALUES ## 
@@ -310,7 +288,7 @@ optim_for_alpha <- function() {
       Pb = plogis(answeroptim$par["Pb"]),
       Pt = plogis(answeroptim$par["Pt"]),
       nu_a     = exp(answeroptim$par["nu_a"]),
-      nu_b     = exp(answeroptim$par["nu_b"]),
+      # nu_b     = exp(answeroptim$par["nu_b"]),
       nu_f     = exp(answeroptim$par["nu_f"]), 
       kappa    = exp(answeroptim$par["kappa"]), 
       mu       = parameters_values["mu"],
@@ -341,7 +319,7 @@ optim_for_alpha <- function() {
       Pb       = NA_real_, 
       Pt       = NA_real_, 
       nu_a     = NA_real_,
-      nu_b     = NA_real_,
+      # nu_b     = NA_real_,
       nu_f     = NA_real_, 
       kappa    = NA_real_, 
       mu       = NA_real_, 
