@@ -84,6 +84,7 @@ creating_plots <- function(listofdf, i) {
   df_cyto_B <- df2 %>% filter(variable %in% c("B_cells", "Cb", "At", "Lr")) 
   
 
+  
   # df_PBL <- df %>% mutate(PBL_scale_10000 = (Cb+Ct+Lt+Lt2+Lt3+Lt4+Lt5)/(B_cells+T_cells+Br+Cb+Ct+At+Lt+Lt2+Lt3+Lt4+Lt5)*10000)
   
   # #plot for all components 
@@ -176,7 +177,7 @@ parameters_values <- c(
 
 initial_values <- c( 
   B_cells = 2.4e9/3    # from three organs 2.4e6/3 
-  , Cb = 1  
+  , Cb = 10  
   , Br = 2.4e9/3       #same initial proportion here infected as in model (well mixed marbles ex) 
   , T_cells = 7.4e8/3  # from three organs 1.5e6/3  
   , Tr = 0 
@@ -203,7 +204,7 @@ baigent1998 <- read_xlsx("Baigent1998/baigent1998.xlsx", sheet = 3, na = "NA") %
 
 powell1982_plaque <- read_xlsx("Powell1982/Powell1982.xlsx", sheet = 2)%>% mutate(time = dpi*24) 
 
-optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDV_v10_HPRS16_20260720_195028.csv") %>% 
+optim_data <- read.csv("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDV_v10_HPRS16_20260720_223001.csv") %>% 
   filter(Converged == 0) %>% slice_min(Likely, n = 10) %>% arrange(Likely) %>% 
   select(c(beta, alpha, alpha_2,nu_a,nu_f,mu,Pb, size_pp38, size_pp38_Ct, kappa, Pt)) 
 
@@ -213,7 +214,7 @@ list_of_df <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   parameter_vector(dat = optim_data, i = i)
 }) 
 
-pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDV_v10_HPRS16_20260720_195028.pdf", width = 7, height = 5)
+pdf("/Users/rayanhg/Desktop/WithinHostModel/CodeOutputsRandNum/FitMDV_v10_HPRS16_20260720_223001.pdf", width = 7, height = 5)
 
 generating_plots <-  purrr::map(seq_len(nrow(optim_data)), function(i) {
   creating_plots(listofdf = list_of_df, i = i)
