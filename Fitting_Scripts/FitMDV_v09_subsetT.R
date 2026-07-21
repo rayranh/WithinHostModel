@@ -18,6 +18,7 @@ library(future)
 library(future.apply) 
 
 start_time <- Sys.time()
+setwd("~/Desktop/WithinHostModel/DataForProject/")
 
 
 ## SIR MODEL ## 
@@ -258,13 +259,13 @@ obs_hourspp38 <- c(72,96,120,144) # make sure pp38 times is matching the data lo
 ## DATA ##  
 #cytolytic infection at a given time of B and T cells in Spleen, Thymus, Bursa 
 
-pp38_dat <-  read_xlsx("~/work/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, Bcell_no,Tcell_no)
+pp38_dat <-  read_xlsx("Baigent1998/baigent1998.xlsx", sheet = 3, na = "NA") %>% filter(!is.na(mean.pp38)) %>% select(time, Bcell_no,Tcell_no)
 
-baigent2016 <- read_xlsx("~/work/baigent2016.xlsx", sheet = 2 ) %>% arrange(time) 
+baigent2016 <- read_xlsx("Baigent2016/Unvax/baigent2016.xlsx", sheet = 2 ) %>% arrange(time) 
 
-baigent2016_PBL <- read_xlsx("~/work/PBL_No_Vax_fin.xlsx") %>% filter(time > -1) %>% mutate(time = round(time*24, 0))
+baigent2016_PBL <- read_xlsx("Baigent2016/Unvax/PBL_No_Vax_fin.xlsx") %>% filter(time > -1) %>% mutate(time = round(time*24, 0))
 
-cortes2004_plaque <- read_xlsx("~/work/RB1B_plaqueAssayPchicks.xlsx")  %>% mutate(time = time*24, n_birds = c(
+cortes2004_plaque <- read_xlsx("Cortes2004/RB1B_plaqueAssayPchicks.xlsx")  %>% mutate(time = time*24, n_birds = c(
   4,6,4,7,2,10,2,9,5,2), SE = upperconf/sqrt(n_birds))   
 
 
@@ -363,33 +364,38 @@ optim_for_alpha <- function() {
 
 
 
+n_per_alpha <- 100  # change this to 10, 50, 100, etc.
 
-#how many random parameter sets I want 
-n_per_alpha <-50
+available_workers <- max(
+  1,
+  parallelly::availableCores(omit = 1)
+)
 
-library(future)
-library(future.apply)
-library(dplyr)
+workers <- min(n_per_alpha, available_workers)
 
-# get number of CPUs Slurm gave us
-workers <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
+plan(multisession, workers = workers) 
 
-plan(multisession, workers = workers)
+cat("Running", n_per_alpha, "random starts using", workers, "parallel workers\n")
 
-task <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1")) #took out sys.tim() as set seed because array can start at same second 
-seed <- as.integer(Sys.time()) + task
-set.seed(seed)
 
+# run many independent model fits in parallel
 results_list <- future_lapply(
   1:n_per_alpha,
-  function(i) optim_for_alpha(),
+  function(i) {
+    optim_for_alpha()
+  },
   future.seed = TRUE
-) 
+)
 
-final_df <- bind_rows(results_list) 
+# combine all results into one table
+final_df <- bind_rows(results_list)
 
 
-out_file <- sprintf("~/work/FitMDV_v09_subsetT%03d.csv", task) #outputting separate files 
+# save the file with a timestamp so it does not overwrite old runs
+out_file <- file.path(
+  "~/Desktop/WithinHostModel/CodeOutputsRandNum/",
+  paste0("FitMDV_v09_subsetT", format(Sys.time(), "%Y%m%d_%H%M%S"), ".csv")
+)
 
 write.table(
   final_df,
@@ -400,7 +406,15 @@ write.table(
   append = FALSE
 )
 
-
-
 end_time <- Sys.time() - start_time
+print(end_time)
+
+cat("Saved results to:", out_file, "\n")
+
+# optional: turn off parallel workers when finished
+plan(sequential) 
+
+
+end_time <- Sys.time() - start_time 
+
 print(end_time)
