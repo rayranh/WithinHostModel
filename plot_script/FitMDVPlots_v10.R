@@ -177,7 +177,7 @@ parameters_values <- c(
 
 initial_values <- c( 
   B_cells = 2.4e9/3    # from three organs 2.4e6/3 
-  , Cb = 10  
+  , Cb = 5   
   , Br = 2.4e9/3       #same initial proportion here infected as in model (well mixed marbles ex) 
   , T_cells = 7.4e8/3  # from three organs 1.5e6/3  
   , Tr = 0 

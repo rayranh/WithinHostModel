@@ -107,8 +107,7 @@ Likelihood_parts <- function(params){
     left_join(Infected_FFE, by = "time")  # brings in Ifn 
   
   ### Scaling PBL model and adding PBL data to same df ### 
-  InfectedPBL <- results %>% mutate(InfCellPBL = (Cb + Ct + Lt + Lt2 + Lt3 + Lt4 + Lt5 + Lr)/
-                                      (B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5 + Lr + Tr) * 10000) %>% 
+  InfectedPBL <- results %>% mutate(InfCellPBL = (Cb + Ct + Lt + Lt2 + Lt3 + Lt4 + Lt5 + Lr)/(B_cells + Cb + Ct + T_cells + At + Br + Lt + Lt2 + Lt3 + Lt4 + Lt5 + Lr + Tr) * 10000) %>% 
     filter(time %in% matched_time) %>% select(time, InfCellPBL) %>% left_join(baigent2016_PBL, by = "time")
   
   pp38_dbinom_Cb <- pp38_dat %>% filter(time %in% obs_hourspp38) %>% 
@@ -153,13 +152,15 @@ Likelihood_parts <- function(params){
   sum_loglike_PBL <- sum(loglike_PBL2016)  
   
   ### Adding Plaque Assay Data ###  
-  
-  loglike_Plaque2004 <- dgamma( 
-    x = cortes2004_plaque$genome_mean, # data that is observed 
-    shape = (PlaqueCells$pfuCells)^2/(cortes2004_plaque$SE)^2, 
-    scale = (cortes2004_plaque$SE)^2/PlaqueCells$pfuCells, 
-    log = TRUE
+
+  loglike_Plaque2004 <- dnorm(
+    log10(cortes2004_plaque$genome_mean), 
+    mean = log10(PlaqueCells$pfuCells), 
+    sd = 0.138,  
+    log = TRUE 
+    
   )
+  
   
   sum_loglike_PFU <- sum(loglike_Plaque2004)
   
@@ -265,8 +266,8 @@ baigent2016 <- read_xlsx("Baigent2016/Unvax/baigent2016.xlsx", sheet = 2 ) %>% a
 
 baigent2016_PBL <- read_xlsx("Baigent2016/Unvax/PBL_No_Vax_fin.xlsx") %>% filter(time > -1) %>% mutate(time = round(time*24, 0))
 
-cortes2004_plaque <- read_xlsx("Cortes2004/RB1B_plaqueAssayPchicks.xlsx")  %>% mutate(time = time*24, n_birds = c(
-  4,6,4,7,2,10,2,9,5,2), SE = upperconf/sqrt(n_birds))   
+cortes2004_plaque <- read_xlsx("Cortes2004/RB1B_plaqueAssayPchicks.xlsx")
+
 
 
 #generate random parameters 
