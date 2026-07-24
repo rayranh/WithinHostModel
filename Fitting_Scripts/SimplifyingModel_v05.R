@@ -180,22 +180,22 @@ Likelihood <- function(params){
 #create intervals for numbers 
 
 parameter_intervals <- list( 
-  beta = log(c(1e-10, 1e-8)), 
-  alpha_2 =log(c(0.1, 0.8)), 
+  beta = log(c(1e-10, 2e-8)), 
+  alpha_2 =log(c(0.005952381,0.014)), 
   # g1 = c(50,300),
   # g2 = c(300,800),
   # h1 = c(559,600),
   # h2 = c(250,800),
-  nu_a = log(c(1e-15,1e-12)),             #Activation rate of T cells by cytolytic B cells (hours)
+  nu_a = log(c(1e-8, 3e-8)),             #Activation rate of T cells by cytolytic B cells (hours)
   # nu_b = log(c(1e-15, 1e-10)),            #Activation rate of T cells by cytolytic T cells (hours)
-  alpha = log(c(0.1,0.5)),  
+  alpha = log(c(0.01,0.04)),  
   # mu = c(0.01388889, 0.05), 
   nu_f = log(c(1e-10, 1e-8)),           #previous nu_f = log(c(0.005952381, 0.0104))
-  Pb = qlogis(c(0.05, 0.99)),  
-  Pt = qlogis(c(0.05, 0.99)), 
-  size_pp38 = log(c(0.05,0.5)),
-  size_pp38_Ct = log(c(0.05,0.5)), 
-  kappa = log(c(1e-6, 3e-2)))  #taken from baigent pp38 data 
+  Pb = qlogis(c(0.01 , 0.30)),  
+  Pt = qlogis(c(0.01, 0.50)), 
+  size_pp38 = log(c(0.10,0.5)),
+  size_pp38_Ct = log(c(0.10,0.5)), 
+  kappa = log(c(1e-5, 1.3e-4)))  #taken from baigent pp38 data 
 
 
 ## PARAMETERS AND INITIAL VALUES ## 
